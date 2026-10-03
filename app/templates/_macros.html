@@ -1,0 +1,73 @@
+{% macro difficulty(d) -%}
+  <span class="badge d-{{ d|lower }}">{{ d }}</span>
+{%- endmacro %}
+
+{% macro verdict(v) -%}
+  <span class="badge v-{{ v|lower }}">{{ VERDICT_LABELS.get(v, v) }}</span>
+{%- endmacro %}
+
+{% macro tags(problem) -%}
+  {% for t in problem.tag_list %}<span class="tag">{{ t }}</span>{% endfor %}
+{%- endmacro %}
+
+{% macro status(s) -%}
+  <span class="badge st-{{ s }}">{{ {'approved': '✔ Approved', 'pending': '⏳ Pending', 'rejected': '✖ Rejected'}.get(s, s) }}</span>
+{%- endmacro %}
+
+{% macro role(r) -%}
+  <span class="role-badge role-{{ r }}">{{ r|title }}</span>
+{%- endmacro %}
+
+{% macro grade(g) -%}
+  {% if g is none %}<span class="muted">—</span>
+  {% else %}<span class="grade-pill {{ 'grade-hi' if g >= 80 else 'grade-mid' if g >= 50 else 'grade-lo' }}">{{ g }}</span>{% endif %}
+{%- endmacro %}
+
+{# Accessible table version of a chart: labels + [(series_label, values), ...] #}
+{% macro chart_table(labels, series, suffix='') -%}
+<details class="table-view">
+  <summary>Show as table</summary>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th>{% for name, _ in series %}<th>{{ name }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for label in labels %}{% set i = loop.index0 %}
+      <tr><td>{{ label }}</td>{% for _, values in series %}<td>{{ values[i] }}{{ suffix }}</td>{% endfor %}</tr>
+    {% endfor %}</tbody>
+  </table></div>
+</details>
+{%- endmacro %}
+
+{% macro chart_scripts() -%}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{%- endmacro %}
+
+{% macro csrf() -%}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro submissions_table(subs, show_user=false) -%}
+<div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>#</th>{% if show_user %}<th>User</th>{% endif %}<th>Exercise</th><th>Verdict</th>
+      <th>Tests</th><th>Grade</th><th>Runtime</th><th>Submitted (UTC)</th>
+    </tr></thead>
+    <tbody>
+    {% for s in subs %}
+      <tr>
+        <td><a href="{{ url_for('main.submission', sub_id=s.id) }}">{{ s.id }}</a></td>
+        {% if show_user %}<td><a href="{{ url_for('main.profile', username=s.user.username) }}">{{ s.user.username }}</a></td>{% endif %}
+        <td class="title"><a href="{{ url_for('main.problem', slug=s.problem.slug) }}">{{ s.problem.title }}</a></td>
+        <td>{{ verdict(s.verdict) }}</td>
+        <td>{{ s.passed or 0 }}/{{ s.total or 0 }}</td>
+        <td>{{ grade(s.grade) }}</td>
+        <td>{{ s.runtime_ms ~ ' ms' if s.runtime_ms is not none else '—' }}</td>
+        <td class="muted">{{ s.submitted_at|dt }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">No submissions yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}

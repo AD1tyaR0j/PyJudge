@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, status as status_badge, csrf %}
+{% block title %}Exercise content{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('admin.dashboard') }}">← Admin dashboard</a></p>
+<div class="page-head">
+  <div><h1>Exercise content</h1><p class="muted">Every exercise on the platform and its approval status.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('studio.new_exercise') }}">+ New exercise</a>
+</div>
+
+<div class="seg" style="margin-bottom:16px">
+  <a href="{{ url_for('admin.content') }}" class="{{ 'on' if not status }}">All ({{ counts.values()|sum }})</a>
+  {% for s in statuses %}
+    <a href="{{ url_for('admin.content', status=s) }}" class="{{ 'on' if s == status }}">{{ s|title }} ({{ counts.get(s, 0) }})</a>
+  {% endfor %}
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Title</th><th>Author</th><th>Difficulty</th><th>Status</th><th>Tests</th><th>Updated</th><th></th></tr></thead>
+    <tbody>
+    {% for p in problems %}
+      <tr>
+        <td class="muted">{{ p.id }}</td>
+        <td class="title"><a href="{{ url_for('main.problem', slug=p.slug) }}">{{ p.title }}</a></td>
+        <td>{{ p.author.display_name if p.author else '—' }}</td>
+        <td>{{ difficulty(p.difficulty) }}</td>
+        <td>{{ status_badge(p.status) }}</td>
+        <td>{{ tests.get(p.id, 0) }}</td>
+        <td class="muted">{{ p.updated_at|dt }}</td>
+        <td class="actions">
+          {% if p.status != 'approved' %}
+            <form class="inline-form" method="post" action="{{ url_for('admin.review', problem_id=p.id) }}">
+              {{ csrf() }}<input type="hidden" name="decision" value="approve"><button class="btn btn-sm btn-success" type="submit">Approve</button>
+            </form>
+          {% endif %}
+          <a class="btn btn-sm" href="{{ url_for('studio.edit_exercise', problem_id=p.id) }}">Edit</a>
+          <form class="inline-form" method="post" action="{{ url_for('studio.delete_exercise', problem_id=p.id) }}"
+                onsubmit="return confirm('Delete this exercise and all its submissions? This cannot be undone.')">
+            {{ csrf() }}<button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">No exercises here.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

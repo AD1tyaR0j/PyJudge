@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import verdict, grade %}
+{% block title %}Student submissions{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('account.dashboard') }}">← Dashboard</a></p>
+<div class="page-head"><div><h1>Student submissions</h1><p class="muted">Review, grade, and give feedback.</p></div></div>
+
+<form class="filters" method="get">
+  <div class="seg">
+    {% for key, label in [('ungraded', 'To grade'), ('graded', 'Graded'), ('all', 'All')] %}
+      <a href="{{ url_for('instructor.submissions', show=key, exercise=problem_id) }}" class="{{ 'on' if show == key }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <input type="hidden" name="show" value="{{ show }}">
+  <select name="exercise" onchange="this.form.submit()">
+    <option value="">All exercises</option>
+    {% for p in exercises %}<option value="{{ p.id }}" {{ 'selected' if p.id == problem_id }}>{{ p.title }}</option>{% endfor %}
+  </select>
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Student</th><th>Exercise</th><th>Verdict</th><th>Tests</th><th>Grade</th><th>Submitted (UTC)</th><th></th></tr></thead>
+    <tbody>
+    {% for s in pagination.items %}
+      <tr>
+        <td class="muted">{{ s.id }}</td>
+        <td><strong>{{ s.user.display_name }}</strong> <span class="muted small">@{{ s.user.username }}</span></td>
+        <td class="title">{{ s.problem.title }}</td>
+        <td>{{ verdict(s.verdict) }}</td>
+        <td>{{ s.passed }}/{{ s.total }}</td>
+        <td>{{ grade(s.grade) }}</td>
+        <td class="muted">{{ s.submitted_at|dt }}</td>
+        <td><a class="btn btn-sm {{ 'btn-primary' if s.grade is none }}" href="{{ url_for('main.submission', sub_id=s.id) }}">{{ 'Grade' if s.grade is none else 'Review' }}</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="empty">{{ '🎉 Everything is graded.' if show == 'ungraded' else 'No submissions yet.' }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if pagination.pages > 1 %}
+  <div class="pagination">
+    {% if pagination.has_prev %}<a class="btn btn-sm" href="{{ url_for('instructor.submissions', show=show, exercise=problem_id, page=pagination.prev_num) }}">← Newer</a>{% endif %}
+    <span class="muted small" style="align-self:center">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+    {% if pagination.has_next %}<a class="btn btn-sm" href="{{ url_for('instructor.submissions', show=show, exercise=problem_id, page=pagination.next_num) }}">Older →</a>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

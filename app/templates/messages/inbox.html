@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import role %}
+{% block title %}Messages{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Messages</h1><p class="muted">{{ 'Ask your instructors questions and get feedback.' if current_user.is_student else 'Conversations with students and staff.' }}</p></div>
+  {% if site.messaging_enabled or current_user.is_admin %}<a class="btn btn-primary" href="{{ url_for('messages.compose') }}">✉ New message</a>{% endif %}
+</div>
+{% if not site.messaging_enabled %}<div class="note">Messaging is currently turned off by an administrator.</div>{% endif %}
+<div class="card" style="padding:8px">
+  {% for c in conversations %}
+    <a class="convo {{ 'unread' if c.unread }}" href="{{ url_for('messages.thread', username=c.user.username) }}">
+      <span class="avatar">{{ c.user.display_name[:1]|upper }}</span>
+      <div class="body">
+        <div class="row" style="gap:8px"><strong>{{ c.user.display_name }}</strong> {{ role(c.user.role) }}
+          {% if c.unread %}<span class="count-badge">{{ c.unread }}</span>{% endif %}</div>
+        <div class="preview">{{ 'You: ' if c.last.sender_id == current_user.id }}{{ c.last.body }}</div>
+      </div>
+      <span class="muted small">{{ c.last.created_at|dt }}</span>
+    </a>
+  {% else %}
+    <div class="empty">No conversations yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

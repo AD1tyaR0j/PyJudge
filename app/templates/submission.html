@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import verdict, difficulty, grade, csrf %}
+{% block title %}Submission #{{ sub.id }}{% endblock %}
+{% block head %}{% if sub.verdict == 'PENDING' %}<meta http-equiv="refresh" content="2">{% endif %}{% endblock %}
+{% block content %}
+{% set is_owner = sub.user_id == current_user.id %}
+{% set can_grade = sub.problem.editable_by(current_user) %}
+<p class="small">
+  {% if is_owner %}<a href="{{ url_for('main.submissions') }}">← My submissions</a>
+  {% else %}<a href="{{ url_for('instructor.submissions') }}">← Student submissions</a>{% endif %}
+</p>
+<div class="page-head">
+  <h1>Submission #{{ sub.id }}</h1>
+  {% if is_owner and not can_grade and (site.messaging_enabled) %}
+    <a class="btn" href="{{ url_for('messages.compose', submission=sub.id, to=sub.problem.author.username if sub.problem.author and sub.problem.author.can_author else '') }}">💬 Ask an instructor about this</a>
+  {% elif can_grade and not is_owner %}
+    <a class="btn" href="{{ url_for('messages.thread', username=sub.user.username) }}">💬 Message {{ sub.user.display_name }}</a>
+  {% endif %}
+</div>
+<div class="grid grid-4" style="margin-bottom:20px">
+  <div class="card"><div class="muted small">Exercise</div>
+    <a href="{{ url_for('main.problem', slug=sub.problem.slug) }}"><strong>{{ sub.problem.title }}</strong></a>
+    <div style="margin-top:4px">{{ difficulty(sub.problem.difficulty) }}</div></div>
+  <div class="card"><div class="muted small">Verdict</div><div style="margin-top:6px">{{ verdict(sub.verdict) }}</div>
+    <div class="small muted" style="margin-top:4px">{{ sub.passed or 0 }}/{{ sub.total or 0 }} tests · {{ sub.runtime_ms ~ ' ms' if sub.runtime_ms is not none else '—' }}</div></div>
+  <div class="card"><div class="muted small">Instructor grade</div><div style="margin-top:6px; font-size:20px">{{ grade(sub.grade) }}</div>
+    {% if sub.grader %}<div class="small muted" style="margin-top:4px">by {{ sub.grader.display_name }}</div>{% endif %}</div>
+  <div class="card"><div class="muted small">Student</div>
+    <a href="{{ url_for('main.profile', username=sub.user.username) }}"><strong>{{ sub.user.display_name }}</strong></a>
+    <div class="small muted" style="margin-top:4px">{{ sub.submitted_at|dt }} UTC</div></div>
+</div>
+
+{% if sub.feedback %}
+  <div class="note ok"><strong>Feedback{% if sub.grader %} from {{ sub.grader.display_name }}{% endif %}:</strong><br>
+    <span style="white-space:pre-wrap">{{ sub.feedback }}</span></div>
+{% endif %}
+
+{% if can_grade and sub.verdict != 'PENDING' %}
+  <form method="post" action="{{ url_for('instructor.grade', sub_id=sub.id) }}" class="card section">
+    {{ csrf() }}
+    <h3>{{ 'Grade this submission' if sub.grade is none else 'Update grade' }}</h3>
+    <p class="muted small" style="margin-top:0">Automatic score: {{ sub.score_percent }}% of tests passed. The student gets a message with your grade and feedback.</p>
+    <div class="grid" style="grid-template-columns: 140px 1fr">
+      <div class="field"><label for="grade">Grade (0–100)</label>
+        <input id="grade" name="grade" type="number" min="0" max="100" required value="{{ sub.grade if sub.grade is not none else sub.score_percent }}"></div>
+      <div class="field"><label for="feedback">Feedback</label>
+        <textarea id="feedback" name="feedback" rows="3" placeholder="What went well, and what to improve…">{{ sub.feedback or '' }}</textarea></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Save grade</button>
+      <button class="btn" type="submit" name="next" value="1">Save &amp; grade next →</button>
+    </div>
+  </form>
+{% endif %}
+
+{% if sub.error %}
+  <h3>Judge details</h3>
+  <pre>{{ sub.error }}</pre>
+{% endif %}
+
+<h3>Code</h3>
+<pre>{{ sub.code }}</pre>
+{% endblock %}

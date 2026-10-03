@@ -1,0 +1,325 @@
+/* =====================================================================
+   Motion & polish: loaded after style.css. Delete this file's <link> in
+   base.html to turn every animation off.
+   ===================================================================== */
+:root {
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --glow: 0 0 0 1px rgba(var(--accent-rgb), .35), 0 10px 30px -10px rgba(var(--accent-rgb), .45);
+}
+
+/* ---------- page-to-page fade (Chromium 126+; others navigate normally) ---------- */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: vt-out .18s ease-in both; }
+::view-transition-new(root) { animation: vt-in .32s var(--ease-out) both; }
+@keyframes vt-out { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* ---------- animated backdrop: drifting orbs, twinkling stars, perspective grid ---------- */
+body { position: relative; overflow-x: hidden; background: transparent; }
+html { background: var(--bg); }
+.backdrop {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background: radial-gradient(120% 70% at 50% -10%, #17123a 0%, rgba(var(--bg-rgb), 0) 60%), var(--bg);
+}
+/* Orbs: each drifts on its own path (transform); the mouse adds a gentle parallax (translate) */
+.orb {
+  position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; will-change: transform;
+  translate: calc(var(--px, 0) * var(--depth, 30px)) calc(var(--py, 0) * var(--depth, 30px));
+  transition: translate 1.4s var(--ease-out);
+}
+.orb.o1 {
+  width: 44vmax; height: 44vmax; left: -14vmax; top: -18vmax; --depth: -40px;
+  background: radial-gradient(circle at 35% 35%, rgba(var(--accent-rgb), .85), transparent 62%);
+  animation: orb-a 28s ease-in-out infinite alternate;
+}
+.orb.o2 {
+  width: 34vmax; height: 34vmax; right: -12vmax; top: 6vh; --depth: 50px;
+  background: radial-gradient(circle at 50% 50%, rgba(var(--accent-2-rgb), .55), transparent 62%);
+  animation: orb-b 34s ease-in-out infinite alternate;
+}
+.orb.o3 {
+  width: 38vmax; height: 38vmax; left: 30vw; bottom: -22vmax; --depth: -25px;
+  background: radial-gradient(circle at 50% 40%, rgba(var(--accent-3-rgb), .6), transparent 62%);
+  animation: orb-c 24s ease-in-out infinite alternate;
+}
+@keyframes orb-a { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(12vw, 8vh) scale(1.15); } 100% { transform: translate(4vw, 18vh) scale(.95); } }
+@keyframes orb-b { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-14vw, 14vh) scale(.9); } 100% { transform: translate(-6vw, -4vh) scale(1.1); } }
+@keyframes orb-c { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-18vw, -10vh) scale(1.1); } 100% { transform: translate(10vw, -16vh) scale(1); } }
+
+/* Two star layers at different sizes, twinkling out of phase and drifting upward */
+.stars, .stars::after {
+  position: absolute; inset: -50% 0 0 0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 20px 30px, rgba(var(--text-rgb), .8), transparent),
+    radial-gradient(1px 1px at 120px 80px, rgba(var(--text-rgb), .55), transparent),
+    radial-gradient(1.4px 1.4px at 200px 150px, rgba(var(--accent-2-rgb), .7), transparent),
+    radial-gradient(1px 1px at 60px 190px, rgba(var(--text-rgb), .5), transparent),
+    radial-gradient(1.2px 1.2px at 170px 20px, rgba(var(--accent-rgb), .8), transparent);
+  background-size: 240px 240px;
+  animation: twinkle 5s ease-in-out infinite, star-drift 120s linear infinite;
+}
+.stars::after { content: ""; inset: 0; background-size: 380px 380px; animation-delay: -2.5s, 0s; opacity: .7; }
+@keyframes twinkle { 0%, 100% { opacity: .35; } 50% { opacity: .9; } }
+@keyframes star-drift { to { transform: translateY(50%); } }
+
+/* Synthwave-style grid floor that scrolls toward the viewer */
+.grid-floor {
+  position: absolute; left: -50%; right: -50%; bottom: -8%; height: 55%;
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb), .22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), .22) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(420px) rotateX(64deg); transform-origin: bottom;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 75%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 75%);
+  animation: grid-scroll 3.5s linear infinite; opacity: .55;
+}
+@keyframes grid-scroll { to { background-position: 0 64px, 0 0; } }
+
+/* Calmer backdrop where people are concentrating on code */
+body.workspace .orb { opacity: .22; }
+body.workspace .grid-floor, body.workspace .stars { display: none; }
+body.auth .orb { opacity: .62; }
+body.auth .grid-floor { opacity: .8; }
+
+/* ---------- glassy nav with sliding underline ---------- */
+.nav {
+  background: rgba(var(--surface-rgb), .72);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  animation: nav-drop .6s var(--ease-out) both;
+}
+@keyframes nav-drop { from { transform: translateY(-100%); opacity: 0; } }
+.brand { display: inline-block; transition: transform .45s var(--ease-spring); }
+.brand:hover { transform: rotate(-4deg) scale(1.08); }
+.nav nav a:not(.btn) { position: relative; transition: color .2s; }
+.nav nav a:not(.btn)::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease-out);
+}
+.nav nav a:not(.btn):hover::after, .nav nav a.active::after { transform: scaleX(1); }
+
+/* ---------- scroll/entrance reveal (classes added by ui.js) ---------- */
+.reveal { opacity: 0; transform: translateY(16px); }
+.reveal.in {
+  opacity: 1; transform: none;
+  transition: opacity .6s var(--ease-out), transform .6s var(--ease-out),
+              border-color .25s, box-shadow .35s var(--ease-out), background .25s;
+  transition-delay: calc(var(--i, 0) * 55ms), calc(var(--i, 0) * 55ms), 0s, 0s, 0s;
+}
+tbody tr.reveal { transform: translateX(-12px); }
+tbody tr.reveal.in { transform: none; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; isolation: isolate; }
+/* Interactive particle field; spans the full window width behind the hero text */
+.hero-canvas {
+  position: absolute; z-index: -1; top: -56px; bottom: -40px; left: 50%; width: 100vw; transform: translateX(-50%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+.hero-hint { font-size: 12.5px !important; color: var(--muted); opacity: .7; margin: 22px auto 0 !important; animation: rise .8s .5s var(--ease-out) both, hint-fade 1s 9s ease forwards !important; }
+@keyframes hint-fade { to { opacity: 0; } }
+
+/* Snake: floats (transform), turns toward the cursor (rotate), spins when clicked */
+.snake-wrap { position: relative; display: inline-block; }
+.hero-snake {
+  display: inline-block; font-size: 52px; line-height: 1; margin-bottom: 10px; padding: 0; border: 0; background: none; cursor: pointer;
+  animation: float 4s ease-in-out infinite; filter: drop-shadow(0 10px 20px rgba(var(--green-rgb), .35));
+  rotate: var(--look, 0deg); transition: rotate .5s var(--ease-out), filter .3s, scale .3s var(--ease-spring);
+}
+.hero-snake:hover { scale: 1.12; filter: drop-shadow(0 12px 26px rgba(var(--accent-2-rgb), .6)); }
+.hero-snake:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 12px; }
+.hero-snake.spin { animation: float 4s ease-in-out infinite, snake-spin .8s var(--ease-spring); }
+@keyframes snake-spin { 0% { scale: 1; } 30% { scale: .8; } 100% { scale: 1; rotate: calc(var(--look, 0deg) + 360deg); } }
+.snake-bubble {
+  position: absolute; left: calc(100% + 10px); top: 0; width: max-content; max-width: 260px; text-align: left;
+  padding: 8px 12px; border-radius: 12px 12px 12px 4px; font-size: 13px; font-weight: 600;
+  background: rgba(var(--surface-rgb), .92); border: 1px solid rgba(var(--accent-2-rgb), .45);
+  box-shadow: 0 10px 30px -10px rgba(var(--accent-2-rgb), .5);
+  opacity: 0; transform: translateY(6px) scale(.9); transform-origin: left bottom; pointer-events: none;
+  transition: opacity .25s, transform .35s var(--ease-spring);
+}
+.snake-bubble.show { opacity: 1; transform: none; }
+@media (max-width: 640px) { .snake-bubble { left: 50%; top: auto; bottom: calc(100% + 6px); transform: translate(-50%, 6px) scale(.9); } .snake-bubble.show { transform: translate(-50%, 0); } }
+
+/* Letters cascade in, then hop when hovered */
+.split-text .char { display: inline-block; white-space: pre; transition: transform .45s var(--ease-spring), color .25s; animation: char-in .7s calc(var(--ci) * 45ms) var(--ease-spring) backwards; }
+.split-text .char:hover { transform: translateY(-12px) rotate(-8deg) scale(1.1); color: var(--accent-2); transition-duration: .15s; }
+@keyframes char-in { from { opacity: 0; transform: translateY(30px) rotate(12deg); } }
+
+/* Magnetic buttons + 3D tilt cards (driven by home.js) */
+.magnetic { transition: transform .35s var(--ease-out), box-shadow .25s, filter .2s; }
+.tilt { transform-style: preserve-3d; will-change: transform; }
+.tilt.tilting { transition: transform .08s linear, border-color .25s, box-shadow .35s; }
+
+.hero h1 { animation: rise .8s var(--ease-out) both; }
+.hero p { animation: rise .8s .12s var(--ease-out) both; }
+.hero .row { animation: rise .8s .24s var(--ease-out) both; }
+.hero h1 .grad {
+  background: linear-gradient(90deg, var(--accent-2), var(--accent-3), var(--purple), var(--accent), var(--accent-2));
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: gradient-flow 8s linear infinite;
+}
+.typing { display: inline-block; min-height: 1.6em; font-family: var(--mono); color: var(--green); font-size: 15px; margin-bottom: 24px; }
+.typing::after { content: "▍"; margin-left: 2px; color: var(--accent-2); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+@keyframes gradient-flow { to { background-position: 300% 0; } }
+@keyframes float { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
+
+/* ---------- cards lift & glow ---------- */
+.card { transition: transform .35s var(--ease-out), border-color .25s, box-shadow .35s var(--ease-out), background .25s; }
+a.card:hover, .stat:hover, .card.hoverable:hover {
+  transform: translateY(-4px); border-color: rgba(var(--accent-rgb), .55); box-shadow: var(--glow); text-decoration: none;
+}
+.stat .num {
+  background: linear-gradient(180deg, #fff, #b4acdf); -webkit-background-clip: text; background-clip: text;
+  color: transparent; font-variant-numeric: tabular-nums;
+}
+/* spotlight that follows the cursor (position set by ui.js) */
+.card { position: relative; isolation: isolate; }
+.card::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none; opacity: 0;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(var(--accent-rgb), .12), transparent 60%);
+  transition: opacity .3s;
+}
+.card:hover::before { opacity: 1; }
+
+/* ---------- buttons: shine sweep, press, ripple ---------- */
+.btn { position: relative; overflow: hidden; transition: transform .15s var(--ease-out), box-shadow .25s, filter .2s, background .2s, border-color .2s; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(0) scale(.97); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .45); }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-3)); border-color: transparent; }
+.btn-primary:hover:not(:disabled) { box-shadow: 0 8px 24px -8px rgba(var(--accent-rgb), .75); }
+.btn-success { background: linear-gradient(135deg, #2fd08f, #17a874); }
+.btn-success:hover:not(:disabled) { box-shadow: 0 8px 24px -8px rgba(var(--green-rgb), .75); }
+.btn-danger:hover:not(:disabled) { background: rgba(var(--red-rgb), .12); }
+.btn-primary::after, .btn-success::after {
+  content: ""; position: absolute; top: 0; left: -75%; width: 50%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .35), transparent);
+  transform: skewX(-20deg); transition: left .7s var(--ease-out);
+}
+.btn-primary:hover::after, .btn-success:hover::after { left: 130%; }
+.ripple {
+  position: absolute; border-radius: 50%; pointer-events: none; background: rgba(255, 255, 255, .35);
+  transform: scale(0); animation: ripple .6s ease-out forwards;
+}
+@keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+/* ---------- form fields ---------- */
+input, select, textarea { transition: border-color .2s, box-shadow .25s, background .2s; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .2);
+}
+.narrow form.card { animation: rise .6s .05s var(--ease-out) both; }
+
+/* ---------- tables ---------- */
+tbody tr { transition: background .2s; }
+tbody tr td:first-child { box-shadow: inset 0 0 0 0 var(--accent); transition: box-shadow .25s var(--ease-out); }
+tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 0 var(--accent); }
+td.title a { transition: color .2s; }
+tbody tr:hover td.title a { color: var(--link-hover); }
+
+/* ---------- badges, tags, status ---------- */
+.badge { transition: transform .25s var(--ease-spring), background .2s; }
+tr:hover .badge, .card:hover .badge { transform: scale(1.07); }
+.tag { transition: background .2s, color .2s, transform .2s; }
+.tag:hover { background: rgba(var(--accent-rgb), .18); color: var(--text); transform: translateY(-1px); }
+.solved { display: inline-block; animation: pop .5s .3s var(--ease-spring) both; }
+.tried { display: inline-block; animation: pulse 2.4s ease-in-out infinite; }
+
+/* ---------- progress bars grow in ---------- */
+.bar > span { animation: bar-grow 1.2s .25s var(--ease-out) both; }
+@keyframes bar-grow { from { width: 0; } }
+
+/* ---------- flash messages as toasts ---------- */
+.flash {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  backdrop-filter: blur(8px); animation: toast-in .5s var(--ease-spring) both;
+}
+.flash.out { animation: toast-out .4s ease-in forwards; }
+.flash .close { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 2px; transition: color .2s, transform .2s; }
+.flash .close:hover { color: var(--text); transform: rotate(90deg); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-12px) scale(.97); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(-8px); } }
+
+/* ---------- problem workspace ---------- */
+.statement { animation: slide-right .55s var(--ease-out) both; }
+.ide { animation: fade-in .7s .1s ease both; }
+.tabs button { position: relative; transition: color .2s; border-bottom-color: transparent !important; }
+.tabs button::after {
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--purple)); transform: scaleX(0); transition: transform .3s var(--ease-out);
+}
+.tabs button.active::after { transform: scaleX(1); }
+.tabs button:hover { color: var(--text); }
+.tab-panel.active { animation: fade-in .3s ease both; }
+.sample pre { transition: border-color .2s, background .2s; }
+.sample:hover pre { border-color: rgba(var(--accent-rgb), .4); }
+.flash-input { animation: flash-border 1s ease; }
+@keyframes flash-border { from { box-shadow: 0 0 0 3px rgba(var(--accent-2-rgb), .6); } to { box-shadow: 0 0 0 0 rgba(var(--accent-2-rgb), 0); } }
+@keyframes slide-right { from { opacity: 0; transform: translateX(-16px); } }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* judging state */
+.judging { display: flex; align-items: center; gap: 10px; }
+.dots span { display: inline-block; width: 7px; height: 7px; margin: 0 2px; border-radius: 50%; background: var(--accent); animation: bounce 1s infinite ease-in-out; }
+.dots span:nth-child(2) { animation-delay: .15s; background: var(--accent-3); }
+.dots span:nth-child(3) { animation-delay: .3s; background: var(--purple); }
+@keyframes bounce { 0%, 80%, 100% { transform: scale(.4); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+.test-progress { height: 4px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin-top: 12px; }
+.test-progress span { display: block; height: 100%; width: 40%; background: linear-gradient(90deg, var(--accent), var(--purple)); animation: indeterminate 1.2s ease-in-out infinite; }
+@keyframes indeterminate { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+/* verdict reveal */
+.result-enter { animation: rise .45s var(--ease-out) both; }
+.verdict-pop { display: inline-block; animation: pop .6s var(--ease-spring) both; }
+.verdict-glow-ac .badge { box-shadow: 0 0 18px rgba(var(--green-rgb), .55); }
+.shake { animation: shake .5s cubic-bezier(.36, .07, .19, .97) both; }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-6px); } 40%, 60% { transform: translateX(6px); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* confetti pieces (spawned by ui.js) */
+.confetti { position: fixed; top: 0; left: 0; width: 9px; height: 13px; border-radius: 2px; pointer-events: none; z-index: 1000; will-change: transform, opacity; }
+
+/* leaderboard medals */
+.medal { display: inline-block; font-size: 20px; animation: float 3s ease-in-out infinite; }
+tr:nth-child(2) .medal { animation-delay: .4s; }
+tr:nth-child(3) .medal { animation-delay: .8s; }
+
+/* ---------- scrollbars & selection ---------- */
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #3a3e5c; }
+::selection { background: rgba(var(--accent-rgb), .35); }
+
+/* ---------- motion toggle (✨ in the nav) ---------- */
+.motion-toggle {
+  background: none; border: 1px solid var(--border); border-radius: 999px; width: 30px; height: 30px;
+  cursor: pointer; font-size: 14px; line-height: 1; transition: transform .4s var(--ease-spring), border-color .2s, opacity .2s;
+}
+.motion-toggle:hover { transform: rotate(20deg) scale(1.1); border-color: var(--accent-2); }
+.motion-toggle[aria-pressed="false"] { opacity: .45; filter: grayscale(1); }
+
+/* ---------- reduced motion: system setting, unless the user turned motion on;
+   or forced off with the toggle ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="on"]) *, html:not([data-motion="on"]) *::before, html:not([data-motion="on"]) *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; transition-delay: 0s !important;
+  }
+  html:not([data-motion="on"]) .backdrop *, html:not([data-motion="on"]) .backdrop *::after { animation: none !important; }
+}
+html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="off"] *::after {
+  animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important; transition-delay: 0s !important;
+}
+html[data-motion="off"] .backdrop *, html[data-motion="off"] .backdrop *::after { animation: none !important; }
+html[data-motion="off"] ::view-transition-old(root), html[data-motion="off"] ::view-transition-new(root) { animation: none; }

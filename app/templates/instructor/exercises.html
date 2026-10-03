@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, status as status_badge, csrf %}
+{% block title %}My exercises{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('account.dashboard') }}">← Dashboard</a></p>
+<div class="page-head">
+  <div><h1>{{ 'All exercises' if current_user.is_admin else 'My exercises' }}</h1><p class="muted">Create and manage coding exercises.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('studio.new_exercise') }}">+ New exercise</a>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Title</th><th>Difficulty</th><th>Status</th><th>Tests</th><th>Students</th><th>Acceptance</th><th></th></tr></thead>
+    <tbody>
+    {% for p in problems %}
+      {% set st = stats.get(p.id) %}
+      <tr>
+        <td class="title"><a href="{{ url_for('main.problem', slug=p.slug) }}">{{ p.title }}</a>
+          {% if p.status == 'rejected' and p.review_note %}<div class="small" style="color:var(--red)">“{{ p.review_note }}”</div>{% endif %}</td>
+        <td>{{ difficulty(p.difficulty) }}</td>
+        <td>{{ status_badge(p.status) }}</td>
+        <td>{{ tests.get(p.id, 0) }}{% if not tests.get(p.id) %} <span title="Add test cases" style="color:var(--orange)">⚠</span>{% endif %}</td>
+        <td>{{ st[2] if st else 0 }}</td>
+        <td>{{ ((100 * st[1] / st[0])|round|int ~ '%') if st and st[0] else '—' }}</td>
+        <td class="actions">
+          <a class="btn btn-sm" href="{{ url_for('studio.edit_exercise', problem_id=p.id) }}">Edit</a>
+          <a class="btn btn-sm" href="{{ url_for('instructor.submissions', exercise=p.id, show='all') }}">Submissions</a>
+          <form class="inline-form" method="post" action="{{ url_for('studio.delete_exercise', problem_id=p.id) }}"
+                onsubmit="return confirm('Delete this exercise and all its submissions? This cannot be undone.')">
+            {{ csrf() }}<button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="empty">You haven't created any exercises yet. <a href="{{ url_for('studio.new_exercise') }}">Write your first one →</a></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

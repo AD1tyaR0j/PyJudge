@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}System settings{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('admin.dashboard') }}">← Admin dashboard</a></p>
+<div class="page-head"><div><h1>System settings</h1><p class="muted">Changes apply to the whole platform immediately.</p></div></div>
+
+<form method="post" class="grid grid-2">
+  {{ csrf() }}
+  <div class="card">
+    <h3>General</h3>
+    {% for key in ['site_name', 'announcement'] %}
+      {% set kind, _d, label, help, _b = schema[key] %}
+      <div class="field">
+        <label for="{{ key }}">{{ label }}</label>
+        <input id="{{ key }}" name="{{ key }}" type="text" value="{{ values[key] }}" maxlength="500">
+        <div class="muted small" style="margin-top:4px">{{ help }}</div>
+      </div>
+    {% endfor %}
+    <h3 style="margin-top:24px">Judge limits</h3>
+    {% for key in ['default_time_limit', 'default_memory_limit', 'max_pending_submissions'] %}
+      {% set kind, _d, label, help, bounds = schema[key] %}
+      <div class="field">
+        <label for="{{ key }}">{{ label }}</label>
+        <input id="{{ key }}" name="{{ key }}" type="number" min="{{ bounds[0] }}" max="{{ bounds[1] }}" value="{{ values[key] }}">
+        <div class="muted small" style="margin-top:4px">{{ help }}</div>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h3>Features</h3>
+    {% for key in ['registration_open', 'require_approval', 'messaging_enabled', 'leaderboard_enabled'] %}
+      {% set kind, _d, label, help, _b = schema[key] %}
+      <div class="switch-row">
+        <div><label for="{{ key }}">{{ label }}</label><div class="muted small">{{ help }}</div></div>
+        <label class="switch"><input id="{{ key }}" name="{{ key }}" type="checkbox" value="1" {{ 'checked' if values[key] }}><span></span></label>
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary" type="submit" style="width:100%; margin-top:20px">Save settings</button>
+  </div>
+</form>
+{% endblock %}

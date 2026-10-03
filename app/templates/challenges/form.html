@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, difficulty %}
+{% block title %}{{ 'New challenge' if is_new else 'Edit challenge' }}{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('challenges.index') }}">← Challenges</a></p>
+<h1>{{ 'New challenge' if is_new else 'Edit challenge' }}</h1>
+<form method="post" class="card">
+  {{ csrf() }}
+  <div class="field"><label for="title">Title</label><input id="title" name="title" type="text" value="{{ c.title or '' }}" required maxlength="150"></div>
+  <div class="field"><label for="description">Description <span class="muted small">(Markdown)</span></label>
+    <textarea id="description" name="description" rows="4">{{ c.description or '' }}</textarea></div>
+  <div class="grid grid-2">
+    <div class="field"><label for="start_at">Starts (UTC)</label><input id="start_at" name="start_at" type="datetime-local" value="{{ c.start_at.strftime(fmt) }}" required></div>
+    <div class="field"><label for="end_at">Ends (UTC)</label><input id="end_at" name="end_at" type="datetime-local" value="{{ c.end_at.strftime(fmt) }}" required></div>
+  </div>
+  <div class="field">
+    <label>Exercises <span class="muted small">(approved exercises only)</span></label>
+    <div class="check-list">
+      {% for p in exercises %}
+        <label><input type="checkbox" name="problem_ids" value="{{ p.id }}" {{ 'checked' if p.id in selected }}> {{ p.title }} {{ difficulty(p.difficulty) }}</label>
+      {% else %}
+        <div class="empty">No approved exercises yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <button class="btn btn-primary" type="submit">{{ 'Create challenge' if is_new else 'Save changes' }}</button>
+</form>
+{% endblock %}

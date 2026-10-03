@@ -1,0 +1,33 @@
+{% extends "auth_layout.html" %}
+{% from "_macros.html" import csrf %}
+{% from "_auth_macros.html" import field %}
+{% block title %}Sign up{% endblock %}
+{% block showcase_title %}Learn Python by<br><span class="grad-text">actually writing it.</span>{% endblock %}
+{% block showcase_text %}Solve hands-on exercises, get instant verdicts, join challenges, and get feedback from instructors.{% endblock %}
+{% block card_title %}Create your account{% endblock %}
+{% block card_sub %}Student accounts are free. Instructor accounts are created by an administrator.{% endblock %}
+
+{% block form %}
+<form method="post" class="auth-form">
+  {{ csrf() }}
+  {{ field('name', 'Full name', ico='badge', value=form.name, i=3, autocomplete='name', extra='required maxlength="100" autofocus') }}
+  {{ field('username', 'Username', ico='user', value=form.username, i=4, autocomplete='username',
+           extra='required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+"') }}
+  {{ field('email', 'Email', type='email', ico='mail', value=form.email, i=5, autocomplete='email', extra='required') }}
+  {{ field('password', 'Password (8+ characters)', type='password', ico='lock', i=6,
+           autocomplete='new-password', extra='required minlength="8"', password=true) }}
+  <div class="strength" style="--i:6" aria-live="polite">
+    <div class="strength-bars"><span></span><span></span><span></span><span></span></div>
+    <span class="strength-label">Use 8+ characters with a mix of letters, numbers, and symbols</span>
+  </div>
+  {{ field('confirm', 'Confirm password', type='password', ico='lock', i=7,
+           autocomplete='new-password', extra='required minlength="8"', password=true) }}
+  <div class="caps-hint" role="status">⇪ Caps Lock is on</div>
+  <div class="match-hint" aria-live="polite"></div>
+  <button class="btn-auth" type="submit" style="--i:8">
+    <span class="label">Create account</span><span class="spinner-sm" aria-hidden="true"></span>
+  </button>
+</form>
+{% endblock %}
+
+{% block card_footer %}Already have an account? <a href="{{ url_for('auth.login') }}">Log in →</a>{% endblock %}

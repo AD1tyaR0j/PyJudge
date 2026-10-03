@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, submissions_table, role %}
+{% block title %}{{ user.username }}{% endblock %}
+{% block content %}
+<div class="row spread">
+  <div>
+    <div class="row">
+      <span class="avatar lg">{{ user.display_name[:1]|upper }}</span>
+      <div>
+        <h1 style="margin:0">{{ user.display_name }}</h1>
+        <p class="muted" style="margin:2px 0 0">@{{ user.username }} · {{ role(user.role) }} · joined {{ user.created_at.strftime('%B %Y') if user.created_at }}</p>
+      </div>
+    </div>
+    {% if user.bio %}<p style="max-width:640px; white-space:pre-wrap">{{ user.bio }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="grid grid-4" style="margin-bottom:24px">
+  <div class="card stat"><div class="num">{{ solved|length }}</div><div class="label">Solved</div></div>
+  <div class="card stat"><div class="num">{{ score }}</div><div class="label">Score</div></div>
+  <div class="card stat"><div class="num">{{ '#' ~ rank if rank else '—' }}</div><div class="label">Rank</div></div>
+  <div class="card stat"><div class="num">{{ ((100 * verdicts.get('AC', 0) / total)|round|int ~ '%') if total else '—' }}</div><div class="label">Acceptance</div></div>
+</div>
+
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items:start">
+  <div class="card">
+    <h3>Progress by difficulty</h3>
+    {% for d, colour in [('Easy', 'green'), ('Medium', 'orange'), ('Hard', 'red')] %}
+      {% set b = by_difficulty[d] %}
+      <div style="margin-bottom:12px">
+        <div class="row spread small"><span>{{ d }}</span><span class="muted">{{ b.solved }} / {{ b.total }}</span></div>
+        <div class="bar"><span style="width:{{ (100 * b.solved / b.total) if b.total else 0 }}%; background:var(--{{ colour }})"></span></div>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <h3>Submissions by verdict</h3>
+    {% for v in ['AC', 'WA', 'TLE', 'MLE', 'RE', 'CE'] %}
+      <div class="row spread small" style="padding:2px 0">
+        <span class="v-{{ v|lower }}">{{ VERDICT_LABELS[v] }}</span><span>{{ verdicts.get(v, 0) }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if authored %}
+<h2>Exercises by {{ user.display_name }}</h2>
+<div class="row" style="margin-bottom:20px">
+  {% for p in authored %}
+    <a class="card" style="padding:10px 14px" href="{{ url_for('main.problem', slug=p.slug) }}">{{ p.title }} {{ difficulty(p.difficulty) }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>Solved exercises</h2>
+{% if solved %}
+  <div class="row">
+  {% for p in solved %}
+    <a class="card" style="padding:10px 14px" href="{{ url_for('main.problem', slug=p.slug) }}">{{ p.title }} {{ difficulty(p.difficulty) }}</a>
+  {% endfor %}
+  </div>
+{% else %}
+  <p class="muted">Nothing solved yet.</p>
+{% endif %}
+
+{% if recent %}
+  <h2>Recent submissions</h2>
+  {{ submissions_table(recent) }}
+{% endif %}
+{% endblock %}

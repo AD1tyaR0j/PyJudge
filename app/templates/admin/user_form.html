@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}Edit {{ user.username }}{% endblock %}
+{% block main_class %}container narrow{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('admin.users') }}">← All users</a></p>
+<div class="row" style="margin-bottom:16px">
+  <span class="avatar lg">{{ user.display_name[:1]|upper }}</span>
+  <div><h1 style="margin:0">{{ user.display_name }}</h1><span class="muted">@{{ user.username }} · joined {{ user.created_at|dt }}</span></div>
+</div>
+<form method="post" class="card">
+  {{ csrf() }}
+  <div class="field"><label for="name">Full name</label><input id="name" name="name" type="text" value="{{ user.name }}" required maxlength="100"></div>
+  <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" value="{{ user.email }}" required></div>
+  <div class="field"><label for="role">Role</label>
+    <select id="role" name="role">{% for r in roles %}<option value="{{ r }}" {{ 'selected' if r == user.role }}>{{ r|title }}</option>{% endfor %}</select>
+  </div>
+  <div class="field"><label for="password">New password <span class="muted small">(leave blank to keep the current one)</span></label>
+    <input id="password" name="password" type="password" minlength="8" autocomplete="new-password"></div>
+  <div class="field"><label class="check"><input type="checkbox" name="is_blocked" value="1" {{ 'checked' if user.is_blocked }}> Block this account (they can't log in)</label></div>
+  <button class="btn btn-primary" type="submit" style="width:100%">Save changes</button>
+</form>
+{% endblock %}

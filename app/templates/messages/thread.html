@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, role %}
+{% block title %}{{ other.display_name }} · Messages{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('messages.inbox') }}">← Messages</a></p>
+<div class="row" style="margin-bottom:16px">
+  <span class="avatar lg">{{ other.display_name[:1]|upper }}</span>
+  <div><h1 style="margin:0">{{ other.display_name }}</h1>
+    <span class="muted">@{{ other.username }}</span> {{ role(other.role) }}</div>
+</div>
+
+<div class="card">
+  <div class="thread" id="thread">
+    {% for m in msgs %}
+      <div class="bubble {{ 'me' if m.sender_id == current_user.id else 'them' }}">{{ m.body }}
+        {%- if m.submission %}<br><a href="{{ url_for('main.submission', sub_id=m.submission.id) }}">📎 Submission #{{ m.submission.id }}: {{ m.submission.problem.title }}</a>{% endif %}
+        <span class="time">{{ m.created_at|dt }} UTC{% if m.sender_id == current_user.id and m.read_at %} · Seen{% endif %}</span></div>
+    {% else %}
+      <div class="empty">Say hello 👋</div>
+    {% endfor %}
+  </div>
+  {% if can_reply %}
+    <form method="post" style="margin-top:14px">
+      {{ csrf() }}
+      <div class="row" style="align-items:flex-end; flex-wrap:nowrap">
+        <textarea name="body" rows="2" maxlength="4000" required placeholder="Write a reply…" style="flex:1"></textarea>
+        <button class="btn btn-primary" type="submit">Send</button>
+      </div>
+    </form>
+  {% else %}
+    <p class="muted small" style="margin-bottom:0">You can't reply to this conversation.</p>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>const t = document.getElementById("thread"); t.scrollTop = t.scrollHeight;</script>
+{% endblock %}

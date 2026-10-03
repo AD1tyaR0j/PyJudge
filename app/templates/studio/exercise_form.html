@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, status as status_badge %}
+{% block title %}{{ 'New exercise' if is_new else 'Edit ' ~ problem.title }}{% endblock %}
+{% block content %}
+<p class="small">
+  {% if current_user.is_admin %}<a href="{{ url_for('admin.content') }}">← Exercise content</a>
+  {% else %}<a href="{{ url_for('instructor.exercises') }}">← My exercises</a>{% endif %}
+  {% if not is_new %} · <a href="{{ url_for('main.problem', slug=problem.slug) }}">Preview &amp; try it</a>{% endif %}</p>
+<div class="page-head">
+  <h1>{{ 'New exercise' if is_new else 'Edit exercise' }}</h1>
+  {% if not is_new %}{{ status_badge(problem.status) }}{% endif %}
+</div>
+
+{% if not is_new %}
+  {% if problem.status == 'pending' %}
+    <div class="note">⏳ Waiting for an admin to approve it. Students can't see it yet.</div>
+  {% elif problem.status == 'rejected' %}
+    <div class="note bad">✖ Returned for changes{% if problem.reviewer %} by {{ problem.reviewer.display_name }}{% endif %}.
+      {% if problem.review_note %}<br><strong>Note:</strong> {{ problem.review_note }}{% endif %}
+      <br><span class="small muted">Save your changes to send it back for review.</span></div>
+  {% elif current_user.is_instructor and site.require_approval %}
+    <div class="note ok">✔ Live for students. Editing the details will send it back for approval.</div>
+  {% endif %}
+{% elif current_user.is_instructor and site.require_approval %}
+  <div class="note">New exercises are reviewed by an admin before students can see them.</div>
+{% endif %}
+
+<form method="post" class="card">
+  {{ csrf() }}
+  <div class="field">
+    <label for="title">Title</label>
+    <input id="title" name="title" type="text" value="{{ problem.title or '' }}" required maxlength="150">
+  </div>
+  <div class="grid grid-4">
+    <div class="field">
+      <label for="difficulty">Difficulty</label>
+      <select id="difficulty" name="difficulty">
+        {% for d in difficulties %}<option {{ 'selected' if d == problem.difficulty }}>{{ d }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="time_limit">Time limit (s)</label>
+      <input id="time_limit" name="time_limit" type="number" min="1" max="10" value="{{ problem.time_limit }}">
+    </div>
+    <div class="field">
+      <label for="memory_limit">Memory limit (MB)</label>
+      <input id="memory_limit" name="memory_limit" type="number" min="16" max="1024" value="{{ problem.memory_limit }}">
+    </div>
+    <div class="field">
+      <label for="tags">Tags <span class="muted small">(comma-separated)</span></label>
+      <input id="tags" name="tags" type="text" value="{{ problem.tags or '' }}" placeholder="arrays, math">
+    </div>
+  </div>
+  <div class="field">
+    <label for="description">Statement <span class="muted small">(Markdown)</span></label>
+    <textarea id="description" name="description" rows="12" class="mono">{{ problem.description or '' }}</textarea>
+  </div>
+  <div class="field">
+    <label for="starter_code">Starter code</label>
+    <textarea id="starter_code" name="starter_code" rows="4" class="mono">{{ problem.starter_code or '' }}</textarea>
+  </div>
+  <button class="btn btn-primary" type="submit">{{ 'Create exercise' if is_new else 'Save changes' }}</button>
+</form>
+
+{% if not is_new %}
+  <h2 id="tests">Test cases ({{ problem.test_cases|length }})</h2>
+  <p class="muted small">Sample cases are shown on the problem page. All cases (sample and hidden) are used for judging. Output is compared after trimming trailing whitespace on each line.</p>
+  {% for tc in problem.test_cases %}
+    <div class="card" style="margin-bottom:12px">
+      <div class="row spread small" style="margin-bottom:8px">
+        <strong>Case {{ loop.index }} {% if tc.is_sample %}<span class="badge" style="color:var(--accent)">sample</span>{% else %}<span class="badge muted">hidden</span>{% endif %}</strong>
+        <form method="post" action="{{ url_for('studio.delete_testcase', tc_id=tc.id) }}" onsubmit="return confirm('Delete this test case?')">
+          {{ csrf() }}<button class="btn btn-sm btn-danger" type="submit">Delete</button>
+        </form>
+      </div>
+      <div class="sample-grid">
+        <div><div class="lbl small muted">Input</div><pre style="max-height:160px">{{ tc.input|truncate(2000) }}</pre></div>
+        <div><div class="lbl small muted">Expected output</div><pre style="max-height:160px">{{ tc.expected_output|truncate(2000) }}</pre></div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <form method="post" action="{{ url_for('studio.add_testcase', problem_id=problem.id) }}" class="card">
+    {{ csrf() }}
+    <h3>Add a test case</h3>
+    <div class="sample-grid">
+      <div class="field"><label for="tc-input">Input</label><textarea id="tc-input" name="input" rows="5" class="mono"></textarea></div>
+      <div class="field"><label for="tc-output">Expected output</label><textarea id="tc-output" name="expected_output" rows="5" class="mono" required></textarea></div>
+    </div>
+    <div class="field"><label class="check"><input type="checkbox" name="is_sample" value="1"> Show as a sample on the problem page</label></div>
+    <button class="btn btn-primary" type="submit">Add test case</button>
+  </form>
+{% endif %}
+{% endblock %}

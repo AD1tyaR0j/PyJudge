@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Practice Python{% endblock %} · {{ site.site_name }}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>">
+  <script>try { var m = localStorage.getItem("pyjudge:motion"); if (m) document.documentElement.dataset.motion = m; } catch (e) {}</script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/motion.css') }}">
+  <script src="{{ url_for('static', filename='js/ui.js') }}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+    <span class="stars"></span><span class="grid-floor"></span>
+  </div>
+  {% set ep = request.endpoint or '' %}
+  <header class="nav">
+    <a class="brand" href="{{ url_for('main.index') }}">
+      {%- if site.site_name == 'PyJudge' %}Py<span>Judge</span>{% else %}{{ site.site_name }}{% endif -%}
+    </a>
+    <nav>
+      <button class="motion-toggle" id="motion-toggle" type="button" aria-pressed="false" title="Toggle animations">✨</button>
+      {% if current_user.is_authenticated %}
+        {% set dash_active = request.blueprint in ('admin', 'instructor', 'student', 'studio') %}
+        <a href="{{ url_for('account.dashboard') }}" class="{{ 'active' if dash_active }}">
+          {{ 'Admin' if current_user.is_admin else 'Instructor' if current_user.is_instructor else 'Dashboard' }}</a>
+      {% endif %}
+      <a href="{{ url_for('main.problems') }}" class="{{ 'active' if ep in ('main.problems', 'main.problem') }}">Exercises</a>
+      <a href="{{ url_for('challenges.index') }}" class="{{ 'active' if request.blueprint == 'challenges' }}">Challenges</a>
+      {% if site.leaderboard_enabled %}
+        <a href="{{ url_for('main.leaderboard') }}" class="{{ 'active' if ep == 'main.leaderboard' }}">Leaderboard</a>
+      {% endif %}
+      {% if current_user.is_authenticated %}
+        {% if site.messaging_enabled or current_user.is_admin %}
+          <a href="{{ url_for('messages.inbox') }}" class="{{ 'active' if request.blueprint == 'messages' }}">
+            Messages{% if unread_messages %} <span class="count-badge">{{ unread_messages }}</span>{% endif %}</a>
+        {% endif %}
+        <details class="user-menu">
+          <summary><span class="avatar">{{ current_user.display_name[:1]|upper }}</span><span class="user-name">{{ current_user.display_name }}</span></summary>
+          <div class="menu">
+            <div class="menu-head"><strong>{{ current_user.display_name }}</strong><span class="role-badge role-{{ current_user.role }}">{{ current_user.role|title }}</span></div>
+            <a href="{{ url_for('main.profile', username=current_user.username) }}">Public profile</a>
+            <a href="{{ url_for('main.submissions') }}">My submissions</a>
+            <a href="{{ url_for('account.settings') }}">Account settings</a>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit">Log out</button>
+            </form>
+          </div>
+        </details>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}">Log in</a>
+        {% if site.registration_open %}<a class="btn btn-primary btn-sm" href="{{ url_for('auth.register') }}">Sign up</a>{% endif %}
+      {% endif %}
+    </nav>
+  </header>
+  {% if site.announcement %}<div class="announcement">📣 {{ site.announcement }}</div>{% endif %}
+
+  <main class="{% block main_class %}container{% endblock %}">
+    {% block flashes %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="{% block flash_class %}{% endblock %}">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% endblock %}
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

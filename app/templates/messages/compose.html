@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block title %}New message{% endblock %}
+{% block main_class %}container narrow{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('messages.inbox') }}">← Messages</a></p>
+<h1>New message</h1>
+<form method="post" class="card">
+  {{ csrf() }}
+  <div class="field">
+    <label for="to">To</label>
+    <select id="to" name="to" required>
+      <option value="">Choose {{ 'an instructor' if current_user.is_student else 'someone' }}…</option>
+      {% for u in contacts %}
+        <option value="{{ u.username }}" {{ 'selected' if u.username == to }}>{{ u.display_name }} ({{ u.role }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if submission %}
+    <input type="hidden" name="submission_id" value="{{ submission.id }}">
+    <div class="note">About submission <a href="{{ url_for('main.submission', sub_id=submission.id) }}">#{{ submission.id }}</a> for “{{ submission.problem.title }}”</div>
+  {% endif %}
+  <div class="field">
+    <label for="body">Message</label>
+    <textarea id="body" name="body" rows="6" maxlength="4000" required
+      placeholder="{{ 'Describe what you tried and where you got stuck…' if current_user.is_student else 'Write your message…' }}"></textarea>
+  </div>
+  <button class="btn btn-primary" type="submit" style="width:100%">Send</button>
+</form>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, tags %}
+{% block title %}Exercises{% endblock %}
+{% block content %}
+<h1>Exercises</h1>
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search exercises…">
+  <select name="difficulty" onchange="this.form.submit()">
+    <option value="">All difficulties</option>
+    {% for d in difficulties %}<option {{ 'selected' if d == selected_difficulty }}>{{ d }}</option>{% endfor %}
+  </select>
+  <select name="tag" onchange="this.form.submit()">
+    <option value="">All topics</option>
+    {% for t in all_tags %}<option {{ 'selected' if t == tag }}>{{ t }}</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">Filter</button>
+  {% if q or selected_difficulty or tag %}<a class="btn" href="{{ url_for('main.problems') }}">Clear</a>{% endif %}
+</form>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th></th><th>#</th><th>Title</th><th>Difficulty</th><th>Acceptance</th><th>Topics</th></tr></thead>
+    <tbody>
+    {% for p in problems %}
+      {% set st = stats.get(p.id) %}
+      <tr>
+        <td class="status-cell">
+          {% if p.id in solved %}<span class="solved" title="Solved">✔</span>
+          {% elif p.id in attempted %}<span class="tried" title="Attempted">●</span>{% endif %}
+        </td>
+        <td class="muted">{{ p.id }}</td>
+        <td class="title"><a href="{{ url_for('main.problem', slug=p.slug) }}">{{ p.title }}</a></td>
+        <td>{{ difficulty(p.difficulty) }}</td>
+        <td>{{ ((100 * st[1] / st[0])|round|int ~ '%') if st and st[0] else '—' }}</td>
+        <td class="title">{{ tags(p) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No exercises match your filters.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

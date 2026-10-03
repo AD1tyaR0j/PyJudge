@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, csrf %}
+{% block title %}{{ c.title }}{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('challenges.index') }}">← All challenges</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{ c.title }}</h1>
+    <p class="muted">{{ c.start_at|dt }} → {{ c.end_at|dt }} UTC
+      · <span class="badge {{ 'v-ac' if c.state == 'active' else 'v-pending' }}">{{ c.state|title }}</span>
+      {% if c.author %}· by {{ c.author.display_name }}{% endif %}</p>
+  </div>
+  {% if c.editable_by(current_user) %}
+    <div class="actions">
+      <a class="btn" href="{{ url_for('challenges.edit', challenge_id=c.id) }}">Edit</a>
+      <form class="inline-form" method="post" action="{{ url_for('challenges.delete', challenge_id=c.id) }}" onsubmit="return confirm('Delete this challenge?')">
+        {{ csrf() }}<button class="btn btn-danger" type="submit">Delete</button></form>
+    </div>
+  {% endif %}
+</div>
+{% if c.description %}<div class="card" style="margin-bottom:18px">{{ c.description|markdown }}</div>{% endif %}
+
+{% if current_user.is_authenticated and problems %}
+  {% set pct = (100 * solved|length / problems|length)|round|int %}
+  <div class="card" style="margin-bottom:18px">
+    <div class="row spread"><strong>Your progress</strong><span>{{ solved|length }} / {{ problems|length }}</span></div>
+    <div class="bar" style="margin-top:8px; height:10px"><span style="width:{{ pct }}%; background:var(--{{ 'green' if pct == 100 else 'accent' }})"></span></div>
+    {% if pct == 100 %}<p style="color:var(--green); margin:8px 0 0">🏅 Challenge complete!</p>
+    {% elif c.state == 'upcoming' %}<p class="muted small" style="margin:8px 0 0">Starts {{ c.start_at|dt }} UTC. Solutions only count during the challenge window.</p>
+    {% else %}<p class="muted small" style="margin:8px 0 0">Only accepted solutions submitted during the challenge window count.</p>{% endif %}
+  </div>
+{% endif %}
+
+<div class="grid grid-2">
+  <div>
+    <h2>Exercises</h2>
+    <div class="card" style="padding:8px 16px">
+      {% for p in problems %}
+        <a class="list-item" href="{{ url_for('main.problem', slug=p.slug) }}" style="color:inherit">
+          <span>{% if p.id in solved %}<span class="solved">✔</span>{% else %}<span class="muted">○</span>{% endif %} {{ p.title }}</span>
+          {{ difficulty(p.difficulty) }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <h2>Standings</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Student</th><th>Solved</th><th>Points</th></tr></thead>
+        <tbody>
+        {% for r in standings %}
+          <tr><td>{% if loop.index <= 3 %}<span class="medal">{{ ['🥇', '🥈', '🥉'][loop.index0] }}</span>{% else %}{{ loop.index }}{% endif %}</td>
+            <td><a href="{{ url_for('main.profile', username=r.user.username) }}">{{ r.user.display_name }}</a></td>
+            <td>{{ r.solved }} / {{ problems|length }}</td><td><strong>{{ r.score }}</strong></td></tr>
+        {% else %}
+          <tr><td colspan="4" class="empty">No solves yet. Be the first!</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

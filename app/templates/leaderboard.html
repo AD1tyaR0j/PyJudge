@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+<h1>Leaderboard</h1>
+<p class="muted">Points per solved problem: Easy {{ points.Easy }} · Medium {{ points.Medium }} · Hard {{ points.Hard }}</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Rank</th><th>User</th><th>Solved</th><th>Score</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr {% if current_user.is_authenticated and r.user.id == current_user.id %}style="background:rgba(79,156,249,.08)"{% endif %}>
+        <td>{% if loop.index <= 3 %}<span class="medal">{{ ['🥇', '🥈', '🥉'][loop.index0] }}</span>{% else %}{{ loop.index }}{% endif %}</td>
+        <td><a href="{{ url_for('main.profile', username=r.user.username) }}">{{ r.user.username }}</a></td>
+        <td>{{ r.solved }}</td>
+        <td><strong>{{ r.score }}</strong></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No one has solved a problem yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

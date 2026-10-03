@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, verdict, grade, chart_table, chart_scripts %}
+{% block title %}My dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Hi {{ current_user.display_name }} 👋</h1><p class="muted">Keep the streak going. Here's where you are.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('main.problems') }}">Browse exercises →</a>
+</div>
+
+<div class="grid grid-4">
+  <div class="card stat"><div class="num">{{ stats.solved }}</div><div class="label">Solved</div><div class="sub">of {{ stats.total }} exercises</div></div>
+  <div class="card stat"><div class="num">{{ stats.score }}</div><div class="label">Points</div><div class="sub">{{ ('rank #' ~ stats.rank) if stats.rank else 'not ranked yet' }}</div></div>
+  <div class="card stat"><div class="num">{{ stats.streak }}</div><div class="label">Day streak 🔥</div></div>
+  <div class="card stat"><div class="num">{{ stats.avg_grade if stats.avg_grade is not none else '—' }}</div><div class="label">Average grade</div></div>
+</div>
+
+<div class="section grid grid-2">
+  <div class="card">
+    <div class="card-head"><h3>Exercises solved: last 30 days</h3></div>
+    <div class="chart-box"><canvas id="progress-chart" aria-label="Cumulative exercises solved over the last 30 days"></canvas></div>
+    {{ chart_table(timeline.labels, [('Solved', timeline.solved)]) }}
+  </div>
+  <div class="card">
+    <h3>Progress by difficulty</h3>
+    {% for d, colour in [('Easy', 'green'), ('Medium', 'orange'), ('Hard', 'red')] %}
+      {% set b = by_difficulty[d] %}
+      <div style="margin-bottom:14px">
+        <div class="row spread small"><span>{{ difficulty(d) }}</span><span class="muted">{{ b.solved }} / {{ b.total }}</span></div>
+        <div class="bar" style="margin-top:6px"><span style="width:{{ (100 * b.solved / b.total) if b.total else 0 }}%; background:var(--{{ colour }})"></span></div>
+      </div>
+    {% endfor %}
+    <h3 style="margin-top:22px">Up next</h3>
+    {% for p in up_next %}
+      <a class="list-item" href="{{ url_for('main.problem', slug=p.slug) }}" style="color:inherit">
+        <span>{{ '↻ ' if p.id in in_progress_ids }}{{ p.title }}</span>{{ difficulty(p.difficulty) }}</a>
+    {% else %}
+      <div class="empty">🏆 You've solved every exercise!</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="section">
+  <h2>🏁 Challenges</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-head"><h3>Active</h3><a class="small" href="{{ url_for('challenges.index') }}">All challenges →</a></div>
+      {% for r in active %}
+        <a class="list-item" href="{{ url_for('challenges.detail', challenge_id=r.challenge.id) }}" style="color:inherit; display:block">
+          <div class="row spread"><strong>{{ r.challenge.title }}</strong><span class="meta">ends {{ r.challenge.end_at|dt }} UTC</span></div>
+          <div class="bar" style="margin-top:8px"><span style="width:{{ r.percent }}%; background:var(--accent)"></span></div>
+          <div class="meta" style="margin-top:4px">{{ r.solved }} / {{ r.total }} solved</div>
+        </a>
+      {% else %}
+        <div class="empty">No active challenges right now.</div>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <h3>Completed</h3>
+      {% for r in completed %}
+        <a class="list-item" href="{{ url_for('challenges.detail', challenge_id=r.challenge.id) }}" style="color:inherit">
+          <span>🏅 {{ r.challenge.title }}</span><span class="badge v-ac">{{ r.total }}/{{ r.total }}</span></a>
+      {% else %}
+        <div class="empty">Finish every exercise in a challenge to earn a medal.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="section grid grid-2">
+  <div class="card">
+    <div class="card-head"><h3>📝 Feedback from instructors</h3><a class="small" href="{{ url_for('main.submissions') }}">All submissions →</a></div>
+    {% for s in feedback %}
+      <a class="list-item" href="{{ url_for('main.submission', sub_id=s.id) }}" style="color:inherit">
+        <div style="min-width:0"><strong>{{ s.problem.title }}</strong>
+          <div class="meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px">{{ s.feedback or 'No written feedback' }}</div></div>
+        {{ grade(s.grade) }}
+      </a>
+    {% else %}
+      <div class="empty">Graded submissions and feedback will show up here.</div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>💬 Messages</h3>
+      <div class="actions"><a class="btn btn-sm" href="{{ url_for('messages.compose') }}">Ask an instructor</a></div></div>
+    {% for m in messages %}
+      <a class="list-item" href="{{ url_for('messages.thread', username=m.sender.username) }}" style="color:inherit">
+        <div style="min-width:0"><strong>{{ m.sender.display_name }}</strong>{% if not m.read_at %} <span class="count-badge">new</span>{% endif %}
+          <div class="meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px">{{ m.body }}</div></div>
+        <span class="meta">{{ m.created_at|dt }}</span>
+      </a>
+    {% else %}
+      <div class="empty">No messages yet. Stuck on something? Ask an instructor.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ chart_scripts() }}
+<script>
+  const T = {{ timeline|tojson }};
+  Charts.line("progress-chart", { labels: T.labels, series: [{ label: "Solved", data: T.solved }] });
+</script>
+{% endblock %}

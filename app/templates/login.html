@@ -1,0 +1,30 @@
+{% extends "auth_layout.html" %}
+{% from "_macros.html" import csrf %}
+{% from "_auth_macros.html" import field %}
+{% block title %}Log in{% endblock %}
+{% block showcase_title %}Pick up right<br><span class="grad-text">where you left off.</span>{% endblock %}
+{% block showcase_text %}Your exercises, streak, challenges, and instructor feedback are waiting for you.{% endblock %}
+{% block card_title %}Welcome back{% endblock %}
+{% block card_sub %}Log in to keep coding.{% endblock %}
+
+{% block form %}
+<form method="post" class="auth-form">
+  {{ csrf() }}
+  {{ field('identifier', 'Username or email', ico='user', value=identifier, i=3,
+           autocomplete='username', extra='required autofocus') }}
+  {{ field('password', 'Password', type='password', ico='lock', i=4,
+           autocomplete='current-password', extra='required', password=true) }}
+  <div class="caps-hint" role="status">⇪ Caps Lock is on</div>
+  <div class="auth-row" style="--i:5">
+    <label class="fancy-check"><input type="checkbox" name="remember" value="1"><span class="box"></span> Remember me</label>
+  </div>
+  <button class="btn-auth" type="submit" style="--i:6">
+    <span class="label">Log in</span><span class="spinner-sm" aria-hidden="true"></span>
+  </button>
+</form>
+{% endblock %}
+
+{% block card_footer %}
+  {% if site.registration_open %}New here? <a href="{{ url_for('auth.register') }}">Create a student account →</a>
+  {% else %}Need an account? Ask an administrator.{% endif %}
+{% endblock %}

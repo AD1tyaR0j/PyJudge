@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, tags, verdict %}
+{% block title %}{{ problem.title }}{% endblock %}
+{% block body_class %}workspace{% endblock %}
+{% block main_class %}{% endblock %}
+{% block flash_class %}container{% endblock %}
+{% block content %}
+<div class="split">
+  <section class="pane statement">
+    <div class="row" style="margin-bottom:6px">
+      <a href="{{ url_for('main.problems') }}" class="small">← All exercises</a>
+      {% if problem.editable_by(current_user) %}
+        <a href="{{ url_for('studio.edit_exercise', problem_id=problem.id) }}" class="small">Edit</a>
+      {% endif %}
+    </div>
+    {% if not problem.is_approved %}
+      <div class="note {{ 'bad' if problem.status == 'rejected' else '' }}">👁 Preview only: this exercise is <strong>{{ problem.status }}</strong> and hidden from students.</div>
+    {% endif %}
+    <h1>{{ problem.id }}. {{ problem.title }}</h1>
+    <div class="row small muted" style="margin-bottom:8px">
+      {{ difficulty(problem.difficulty) }}
+      <span>⏱ {{ problem.time_limit }} s</span>
+      <span>💾 {{ problem.memory_limit }} MB</span>
+    </div>
+    <div>{{ tags(problem) }}</div>
+
+    <div class="description">{{ problem.description|markdown }}</div>
+
+    {% if problem.sample_cases %}
+      <h3>Examples</h3>
+      {% for tc in problem.sample_cases %}
+        <div class="sample">
+          <div class="row spread small"><strong>Example {{ loop.index }}</strong>
+            <button class="btn btn-sm" type="button" data-use-input="{{ loop.index0 }}">Use as input</button>
+          </div>
+          <div class="sample-grid" style="margin-top:6px">
+            <div><div class="lbl">Input</div><pre class="sample-in">{{ tc.input }}</pre></div>
+            <div><div class="lbl">Output</div><pre>{{ tc.expected_output }}</pre></div>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% if last %}
+      <p class="small muted">Your last submission:
+        <a href="{{ url_for('main.submission', sub_id=last.id) }}">{{ verdict(last.verdict) }}</a>
+        · {{ last.submitted_at|dt }} UTC
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="ide">
+    <div class="toolbar">
+      <div class="row small muted"><strong style="color:var(--text)">Python 3</strong>
+        <button class="btn btn-sm" id="reset-btn" type="button" title="Restore the starter code">Reset</button>
+      </div>
+      <div class="row">
+        {% if current_user.is_authenticated %}
+          <button class="btn" id="run-btn" type="button" title="Ctrl+Enter">▶ Run</button>
+          <button class="btn btn-success" id="submit-btn" type="button" title="Ctrl+Shift+Enter">Submit</button>
+        {% else %}
+          <a class="btn btn-primary" href="{{ url_for('auth.login', next=request.path) }}">Log in to run &amp; submit</a>
+        {% endif %}
+      </div>
+    </div>
+    <div id="editor"></div>
+    <div class="console">
+      <div class="tabs" role="tablist">
+        <button class="active" data-tab="input" type="button">Custom input</button>
+        <button data-tab="output" type="button">Output</button>
+        <button data-tab="result" type="button">Result</button>
+        <span style="margin-left:auto; align-self:center" class="small muted"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> run</span>
+      </div>
+      <div class="tab-panel active" data-panel="input">
+        <textarea id="stdin" class="mono" spellcheck="false" placeholder="Input sent to your program's stdin">{{ problem.sample_cases[0].input if problem.sample_cases else '' }}</textarea>
+      </div>
+      <div class="tab-panel" data-panel="output"><div id="run-output" class="muted">Run your code to see its output here.</div></div>
+      <div class="tab-panel" data-panel="result"><div id="submit-result" class="muted">Submit to judge your code against all test cases.</div></div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.PROBLEM = {
+    id: {{ problem.id }},
+    slug: {{ problem.slug|tojson }},
+    starter: {{ (problem.starter_code or '')|tojson }},
+    lastCode: {{ (last.code if last else none)|tojson }},
+    loggedIn: {{ current_user.is_authenticated|tojson }},
+    submissionUrl: {{ url_for('main.submission', sub_id=0)|tojson }},
+    labels: {{ VERDICT_LABELS|tojson }}
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+{% endblock %}

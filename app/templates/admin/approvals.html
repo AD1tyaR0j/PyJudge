@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, tags, csrf %}
+{% block title %}Content approval{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('admin.dashboard') }}">← Admin dashboard</a></p>
+<div class="page-head"><div><h1>Content approval</h1><p class="muted">Review exercises submitted by instructors. The author gets a message with your decision.</p></div></div>
+
+{% for p in pending %}
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div>
+        <h3>{{ p.title }} {{ difficulty(p.difficulty) }}</h3>
+        <div class="muted small">by {{ p.author.display_name if p.author else 'deleted user' }} · submitted {{ p.updated_at|dt }} UTC
+          · ⏱ {{ p.time_limit }} s · 💾 {{ p.memory_limit }} MB</div>
+        <div style="margin-top:4px">{{ tags(p) }}</div>
+      </div>
+      <a class="btn btn-sm" href="{{ url_for('main.problem', slug=p.slug) }}" target="_blank" rel="noopener">Preview &amp; try it ↗</a>
+    </div>
+    <details>
+      <summary class="small muted" style="cursor:pointer">Statement</summary>
+      <div class="description">{{ p.description|markdown }}</div>
+    </details>
+    <p class="small">
+      {% if p.test_cases %}{{ p.sample_cases|length }} sample + {{ p.test_cases|length - p.sample_cases|length }} hidden test cases
+      {% else %}<span style="color:var(--red)">⚠ No test cases yet. It can't be approved until the author adds some.</span>{% endif %}
+    </p>
+    <form method="post" action="{{ url_for('admin.review', problem_id=p.id) }}">
+      {{ csrf() }}
+      <div class="field"><label for="note-{{ p.id }}">Note to the instructor <span class="muted small">(required when rejecting)</span></label>
+        <textarea id="note-{{ p.id }}" name="note" rows="2" placeholder="e.g. Please add an edge case for empty input."></textarea></div>
+      <div class="actions">
+        <button class="btn btn-success" name="decision" value="approve" type="submit" {{ 'disabled' if not p.test_cases }}>✔ Approve &amp; publish</button>
+        <button class="btn btn-danger" name="decision" value="reject" type="submit">✖ Reject</button>
+      </div>
+    </form>
+  </div>
+{% else %}
+  <div class="card empty">🎉 All caught up. No exercises are waiting for review.</div>
+{% endfor %}
+{% endblock %}

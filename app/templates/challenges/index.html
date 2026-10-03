@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Challenges{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Challenges</h1><p class="muted">Time-boxed sets of exercises. Solve them all before the deadline to complete a challenge.</p></div>
+  {% if current_user.is_authenticated and current_user.can_author %}
+    <a class="btn btn-primary" href="{{ url_for('challenges.new') }}">+ New challenge</a>{% endif %}
+</div>
+
+{% for state, heading in [('active', '🔥 Active'), ('upcoming', '🗓 Upcoming'), ('ended', '🏁 Ended')] %}
+  {% if groups[state] or state == 'active' %}
+  <div class="section">
+    <h2>{{ heading }}</h2>
+    <div class="grid grid-2">
+      {% for r in groups[state] %}
+        {% set c = r.challenge %}
+        <a class="card" href="{{ url_for('challenges.detail', challenge_id=c.id) }}" style="color:inherit">
+          <div class="card-head"><h3>{{ c.title }}</h3>
+            {% if r.completed %}<span class="badge v-ac">🏅 Completed</span>{% endif %}</div>
+          <p class="muted small" style="margin-top:0">{{ c.start_at|dt }} → {{ c.end_at|dt }} UTC · {{ r.total }} exercises</p>
+          {% if current_user.is_authenticated and state != 'upcoming' %}
+            <div class="bar"><span style="width:{{ r.percent }}%; background:var(--{{ 'green' if r.completed else 'accent' }})"></span></div>
+            <div class="small muted" style="margin-top:4px">{{ r.solved }} / {{ r.total }} solved</div>
+          {% endif %}
+        </a>
+      {% else %}
+        <div class="card empty">No active challenges right now.</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}
+{% endblock %}

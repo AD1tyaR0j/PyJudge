@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block body_class %}auth{% endblock %}
+{% block main_class %}auth-main{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">{% endblock %}
+{% block flashes %}{% endblock %}
+
+{% block content %}
+{% set errors = get_flashed_messages(category_filter=['error']) %}
+<div class="auth-shell no-reveal">
+  <section class="auth-showcase" aria-hidden="true">
+    <div class="eyebrow"><span class="pulse-dot"></span> Python practice, judged in seconds</div>
+    <h1 class="auth-headline">{% block showcase_title %}{% endblock %}</h1>
+    <p class="auth-lede">{% block showcase_text %}{% endblock %}</p>
+
+    <div class="code-window" id="code-window">
+      <div class="cw-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="cw-file">two_sum.py</span>
+        <span class="cw-run">▶ Submit</span>
+      </div>
+      <pre class="cw-code"><span class="cw-line"><span class="k">def</span> <span class="f">two_sum</span>(nums, target):</span>
+<span class="cw-line">    seen = {}</span>
+<span class="cw-line">    <span class="k">for</span> i, x <span class="k">in</span> <span class="f">enumerate</span>(nums):</span>
+<span class="cw-line">        <span class="k">if</span> target - x <span class="k">in</span> seen:</span>
+<span class="cw-line">            <span class="k">return</span> seen[target - x], i</span>
+<span class="cw-line">        seen[x] = i</span></pre>
+      <div class="cw-result">
+        <div class="cw-judging"><span class="cw-spin"></span> Judging against 6 test cases…</div>
+        <div class="cw-verdict"><span class="cw-badge">✔ Accepted</span><span>6/6 tests · 48 ms</span></div>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip" style="--i:0">🏁 Weekly challenges</span>
+      <span class="chip" style="--i:1">📝 Instructor feedback</span>
+      <span class="chip" style="--i:2">📈 Progress tracking</span>
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="auth-card {{ 'shake-in' if errors else '' }}">
+      <div class="auth-logo" style="--i:0">🐍</div>
+      <h2 class="auth-card-title" style="--i:1">{% block card_title %}{% endblock %}</h2>
+      <p class="auth-card-sub" style="--i:2">{% block card_sub %}{% endblock %}</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block form %}{% endblock %}
+      <div class="auth-foot">{% block card_footer %}{% endblock %}</div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+{% endblock %}

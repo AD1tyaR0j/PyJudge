@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import verdict, status as status_badge %}
+{% block title %}Instructor dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Welcome back, {{ current_user.display_name }} 👋</h1><p class="muted">Your exercises, students, and messages at a glance.</p></div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('challenges.new') }}">🏁 New challenge</a>
+    <a class="btn btn-primary" href="{{ url_for('studio.new_exercise') }}">+ New exercise</a>
+  </div>
+</div>
+
+<div class="grid grid-4">
+  <a class="card stat" href="{{ url_for('instructor.exercises') }}"><div class="num">{{ stats.exercises }}</div><div class="label">My exercises</div>
+    <div class="sub">{{ stats.approved }} live · {{ stats.pending }} pending</div></a>
+  <a class="card stat {{ 'warn' if stats.to_grade }}" href="{{ url_for('instructor.submissions') }}"><div class="num">{{ stats.to_grade }}</div><div class="label">To grade</div></a>
+  <a class="card stat" href="{{ url_for('instructor.reports') }}"><div class="num">{{ stats.students }}</div><div class="label">Students reached</div></a>
+  <a class="card stat" href="{{ url_for('messages.inbox') }}"><div class="num">{{ unread_messages }}</div><div class="label">Unread messages</div></a>
+</div>
+
+{% if rejected %}
+  <div class="section">
+    {% for p in rejected %}
+      <div class="note bad">✖ <a href="{{ url_for('studio.edit_exercise', problem_id=p.id) }}"><strong>{{ p.title }}</strong></a> was returned for changes.
+        {% if p.review_note %}<span class="muted">“{{ p.review_note }}”</span>{% endif %}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="section grid grid-2">
+  <div class="card">
+    <div class="card-head"><h3>📝 Student submissions to grade</h3><a class="small" href="{{ url_for('instructor.submissions') }}">See all →</a></div>
+    {% for s in to_grade %}
+      <a class="list-item" href="{{ url_for('main.submission', sub_id=s.id) }}" style="color:inherit">
+        <div><strong>{{ s.user.display_name }}</strong> · {{ s.problem.title }}
+          <div class="meta">{{ s.submitted_at|dt }} UTC · {{ s.passed }}/{{ s.total }} tests</div></div>
+        {{ verdict(s.verdict) }}
+      </a>
+    {% else %}
+      <div class="empty">Nothing to grade right now.</div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>💬 Student messages</h3><a class="small" href="{{ url_for('messages.inbox') }}">Inbox →</a></div>
+    {% for m in inbox %}
+      <a class="list-item" href="{{ url_for('messages.thread', username=m.sender.username) }}" style="color:inherit">
+        <div style="min-width:0"><strong>{{ m.sender.display_name }}</strong>{% if not m.read_at %} <span class="count-badge">new</span>{% endif %}
+          <div class="meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px">{{ m.body }}</div></div>
+        <span class="meta">{{ m.created_at|dt }}</span>
+      </a>
+    {% else %}
+      <div class="empty">No messages yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
