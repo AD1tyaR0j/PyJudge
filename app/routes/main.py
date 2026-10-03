@@ -6,7 +6,8 @@ from flask_login import current_user, login_required
 from .. import db
 from ..models import DIFFICULTIES, POINTS, Challenge, Problem, Submission, User
 from ..settings import setting
-from ..stats import acceptance_stats, attempted_problem_ids, leaderboard_rows, solved_problem_ids
+from ..stats import (acceptance_stats, achievements, attempted_problem_ids, course_overview, leaderboard_rows,
+                     solved_problem_ids)
 
 bp = Blueprint("main", __name__)
 
@@ -14,7 +15,9 @@ bp = Blueprint("main", __name__)
 @bp.route("/")
 def index():
     approved = Problem.query.filter_by(status="approved")
+    course = course_overview(current_user)
     stats = {
+        "lessons": course["total"],
         "problems": approved.count(),
         "users": User.query.filter_by(role="student").count(),
         "submissions": Submission.query.count(),
@@ -22,7 +25,7 @@ def index():
     active_challenges = [c for c in Challenge.query.order_by(Challenge.end_at).all() if c.state == "active"][:2]
     return render_template("index.html", featured=approved.order_by(Problem.id).limit(3).all(), stats=stats,
                            leaders=leaderboard_rows(limit=5) if setting("leaderboard_enabled") else [],
-                           active_challenges=active_challenges)
+                           active_challenges=active_challenges, course=course)
 
 
 @bp.route("/problems")
@@ -110,4 +113,5 @@ def profile(username):
 
     return render_template("profile.html", user=user, solved=solved, by_difficulty=by_difficulty,
                            verdicts=verdicts, total=total, rank=rank, recent=recent, authored=authored,
-                           score=sum(POINTS.get(p.difficulty, 10) for p in solved))
+                           score=sum(POINTS.get(p.difficulty, 10) for p in solved),
+                           course=course_overview(user), badges=achievements(user) if user.is_student else [])

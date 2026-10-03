@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import difficulty, tags %}
 {% block title %}Practice Python in your browser{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">{% endblock %}
 {% block content %}
 <section class="hero" id="hero">
   <canvas class="hero-canvas" aria-hidden="true"></canvas>
@@ -14,19 +15,32 @@
                          '>>> verdict = "Accepted ✔"', '>>> [x * x for x in range(10)]'] %}
   <div class="typing" aria-hidden="true" data-typing='{{ typing_lines|tojson }}'></div>
   <div class="row" style="justify-content:center">
-    <a class="btn btn-primary btn-lg magnetic" href="{{ url_for('main.problems') }}">Browse exercises</a>
-    {% if not current_user.is_authenticated and site.registration_open %}
-      <a class="btn btn-lg magnetic" href="{{ url_for('auth.register') }}">Create a free account</a>
-    {% endif %}
+    <a class="btn btn-primary btn-lg magnetic" href="{{ url_for('learn.index') }}">{{ 'Continue learning' if course.done else 'Start learning' }}</a>
+    <a class="btn btn-lg magnetic" href="{{ url_for('main.problems') }}">Browse exercises</a>
   </div>
   <p class="hero-hint" aria-hidden="true">✨ Move your mouse around, or click anywhere up here</p>
 </section>
 
-<div class="grid grid-3" style="margin-bottom:28px">
+<div class="grid grid-4" style="margin-bottom:28px">
+  <div class="card stat tilt"><div class="num">{{ stats.lessons }}</div><div class="label">Lessons</div></div>
   <div class="card stat tilt"><div class="num">{{ stats.problems }}</div><div class="label">Exercises</div></div>
   <div class="card stat tilt"><div class="num">{{ stats.users }}</div><div class="label">Students</div></div>
   <div class="card stat tilt"><div class="num">{{ stats.submissions }}</div><div class="label">Submissions judged</div></div>
 </div>
+
+{% if course.topics %}
+<div class="row spread"><h2 style="margin:0">📚 Learn Python, step by step</h2>
+  <a class="small" href="{{ url_for('learn.index') }}">Full course roadmap →</a></div>
+<div class="grid home-topics" style="margin:14px 0 30px">
+  {% for t in course.topics[:8] %}
+    <a class="card tilt topic-chip" href="{{ url_for('learn.topic', topic_slug=t.topic.slug) }}" style="color:inherit">
+      <span class="topic-chip-icon">{{ t.topic.icon }}</span>
+      <div><strong>{{ t.topic.title }}</strong>
+        <div class="muted small">{{ t.total }} lessons{% if t.done %} · {{ t.percent }}% done{% endif %}</div></div>
+    </a>
+  {% endfor %}
+</div>
+{% endif %}
 
 <div class="grid home-cols">
   <div>
@@ -70,10 +84,11 @@
 {% endif %}
 
 <h2 style="margin-top:36px">How it works</h2>
-<div class="grid grid-3">
-  <div class="card"><h3>1 · Pick an exercise</h3><p class="muted">Filter by difficulty or topic, from FizzBuzz to longest increasing subsequence.</p></div>
-  <div class="card"><h3>2 · Code &amp; run</h3><p class="muted">Write Python in a VS Code-style editor and test it with your own input.</p></div>
+<div class="grid grid-4">
+  <div class="card"><h3>1 · Learn</h3><p class="muted">Short lessons with runnable examples and quizzes, from your first <code>print()</code> to BFS.</p></div>
+  <div class="card"><h3>2 · Practice</h3><p class="muted">Each lesson links to exercises on the same topic, from FizzBuzz to edit distance.</p></div>
   <div class="card"><h3>3 · Submit</h3><p class="muted">Your code runs in a sandbox against hidden tests and you get a verdict in seconds.</p></div>
+  <div class="card"><h3>4 · Grow</h3><p class="muted">Track your progress, earn achievements, join challenges, and get feedback from instructors.</p></div>
 </div>
 {% endblock %}
 

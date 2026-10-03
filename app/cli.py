@@ -7,9 +7,13 @@ from .models import ROLES, User
 def register_cli(app):
     @app.cli.command("seed")
     def seed():
-        """Add the starter exercise bank and a sample challenge."""
+        """Add exercises, the Python course, and a sample challenge (safe to re-run)."""
+        from . import models
+        from .curriculum import sync_curriculum
         from .seed import seed_problems
         click.echo(f"Added {seed_problems()} exercise(s).")
+        topics, created, updated = sync_curriculum(db, models)
+        click.echo(f"Course: {topics} new topic(s), {created} new lesson(s), {updated} lesson(s) refreshed.")
 
     @app.cli.command("set-role")
     @click.argument("username")

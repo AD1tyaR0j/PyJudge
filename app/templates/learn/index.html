@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Learn Python{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">{% endblock %}
+{% block content %}
+<section class="learn-hero">
+  <div>
+    <span class="eyebrow-sm">🐍 The PyJudge Python course</span>
+    <h1>Learn Python, <span class="grad">one step at a time.</span></h1>
+    <p class="muted">{{ course.topics|length }} topics · {{ course.total }} hands-on lessons with runnable examples and quizzes.
+      Every lesson links to exercises so you can practice right away.</p>
+    <div class="row">
+      {% if course.next %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('learn.lesson', topic_slug=course.next.topic.slug, lesson_slug=course.next.slug) }}">
+          {{ 'Continue learning' if course.done else 'Start the course' }} →</a>
+      {% else %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('main.problems', difficulty='Hard') }}">🎓 Course complete: take on Hard exercises</a>
+      {% endif %}
+      <a class="btn btn-lg" href="{{ url_for('main.problems') }}">Practice exercises</a>
+    </div>
+  </div>
+  <div class="ring-card">
+    {% set r = 54 %}{% set c = 2 * 3.14159 * r %}
+    <svg class="ring" viewBox="0 0 140 140" role="img" aria-label="{{ course.percent }}% of the course complete">
+      <circle cx="70" cy="70" r="{{ r }}" class="ring-bg"/>
+      <circle cx="70" cy="70" r="{{ r }}" class="ring-fg" style="--c: {{ c }}; --p: {{ course.percent }}"
+              stroke-dasharray="{{ c }}" stroke-dashoffset="{{ c * (1 - course.percent / 100) }}"/>
+      <text x="70" y="68" class="ring-num">{{ course.percent }}%</text>
+      <text x="70" y="88" class="ring-label">complete</text>
+    </svg>
+    <div class="ring-stats">
+      <div><strong>{{ course.done }}</strong><span>of {{ course.total }} lessons</span></div>
+      <div><strong>{{ course.quiz_avg ~ '%' if course.quiz_avg is not none else '—' }}</strong><span>quiz average</span></div>
+    </div>
+    {% if not current_user.is_authenticated %}
+      <p class="small muted" style="margin:8px 0 0">
+        <a href="{{ url_for('auth.login', next=request.path) }}">Log in</a> to save your progress.</p>
+    {% endif %}
+  </div>
+</section>
+
+{% if course.next and course.done %}
+  {% set nl = course.next %}
+  <a class="card continue-card" href="{{ url_for('learn.lesson', topic_slug=nl.topic.slug, lesson_slug=nl.slug) }}">
+    <span class="continue-icon">{{ nl.topic.icon }}</span>
+    <div><div class="muted small">Up next · {{ nl.topic.title }}</div><strong>{{ nl.title }}</strong></div>
+    <span class="muted small">{{ nl.minutes }} min →</span>
+  </a>
+{% endif %}
+
+<h2 class="section">Course roadmap</h2>
+<ol class="roadmap">
+  {% for t in course.topics %}
+    <li class="road-step state-{{ t.state }}" style="--i: {{ loop.index0 }}">
+      <span class="road-dot" aria-hidden="true">{% if t.state == 'done' %}✓{% else %}{{ loop.index }}{% endif %}</span>
+      <a class="card road-card" href="{{ url_for('learn.topic', topic_slug=t.topic.slug) }}">
+        <div class="road-head">
+          <span class="road-icon">{{ t.topic.icon }}</span>
+          <div>
+            <h3>{{ t.topic.title }}</h3>
+            <div class="muted small">{{ t.topic.level }} · {{ t.total }} lessons · ~{{ t.minutes }} min</div>
+          </div>
+          {% if t.state == 'done' %}<span class="badge v-ac">Done</span>
+          {% elif t.state == 'active' %}<span class="badge st-pending">In progress</span>{% endif %}
+        </div>
+        <p class="muted">{{ t.topic.summary }}</p>
+        <div class="bar"><span style="width:{{ t.percent }}%; background: var(--{{ 'green' if t.state == 'done' else 'accent' }})"></span></div>
+        <div class="small muted" style="margin-top:6px">{{ t.done }} / {{ t.total }} lessons</div>
+      </a>
+    </li>
+  {% endfor %}
+</ol>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty, status as status_badge %}
+{% block title %}{{ lesson.title }} · Learn{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+{% endblock %}
+{% block content %}
+<div class="read-progress" aria-hidden="true"><span></span></div>
+<div class="lesson-layout">
+  <aside class="lesson-side">
+    <a class="small" href="{{ url_for('learn.topic', topic_slug=topic.slug) }}">← {{ topic.icon }} {{ topic.title }}</a>
+    <ol class="side-list">
+      {% for l in siblings %}
+        {% set p = course.progress.get(l.id) %}
+        <li class="{{ 'current' if l.id == lesson.id }} {{ 'done' if p and p.completed_at }}">
+          <a href="{{ url_for('learn.lesson', topic_slug=topic.slug, lesson_slug=l.slug) }}">
+            <span class="side-mark">{% if p and p.completed_at %}✓{% else %}{{ loop.index }}{% endif %}</span>{{ l.title }}</a>
+        </li>
+      {% endfor %}
+    </ol>
+    <a class="small muted" href="{{ url_for('learn.index') }}">All topics</a>
+  </aside>
+
+  <article class="lesson-main">
+    <header class="lesson-header">
+      <div class="muted small">{{ topic.icon }} {{ topic.title }} · {{ lesson.minutes }} min read
+        {% if lesson.author and lesson.source == 'custom' %} · by {{ lesson.author.display_name }}{% endif %}</div>
+      <h1>{{ lesson.title }}</h1>
+      <div class="row">
+        {% if progress and progress.completed_at %}<span class="badge v-ac">✓ Completed</span>{% endif %}
+        {% if not lesson.is_approved %}{{ status_badge(lesson.status) }}<span class="small muted">Preview: students can't see this yet.</span>{% endif %}
+        {% if lesson.editable_by(current_user) %}<a class="small" href="{{ url_for('studio.edit_lesson', lesson_id=lesson.id) }}">Edit lesson</a>{% endif %}
+      </div>
+    </header>
+
+    <div class="lesson-body description">{{ body }}</div>
+
+    {% if questions %}
+      <section class="quiz card" id="quiz">
+        <div class="card-head"><h2>🧠 Check your understanding</h2>
+          <span class="small muted">Score {{ (pass_ratio * 100)|int }}%+ to complete the lesson</span></div>
+        {% if progress and progress.quiz_total %}
+          <p class="small muted">Your best so far: {{ progress.quiz_score }}/{{ progress.quiz_total }}
+            ({{ progress.attempts }} attempt{{ 's' if progress.attempts != 1 }})</p>
+        {% endif %}
+        <form class="quiz-form" method="post" action="{{ url_for('learn.quiz', topic_slug=topic.slug, lesson_slug=lesson.slug) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% for q in questions %}
+            <fieldset class="question" data-qid="{{ q.id }}">
+              <legend><span class="q-num">{{ loop.index }}</span><div class="q-prompt">{{ q.prompt }}</div></legend>
+              {% set qi = loop.index0 %}
+              {% for opt in q.options %}
+                <label class="option">
+                  <input type="radio" name="q{{ q.id }}" value="{{ loop.index0 }}" required>
+                  <span class="opt-text">{{ opt }}</span>
+                </label>
+              {% endfor %}
+              <div class="explain" hidden></div>
+            </fieldset>
+          {% endfor %}
+          <div class="quiz-actions">
+            <button class="btn btn-primary" type="submit">Check answers</button>
+            <span class="quiz-result" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </section>
+    {% elif current_user.is_authenticated %}
+      <div class="card quiz">
+        <form class="complete-form" method="post" action="{{ url_for('learn.complete', topic_slug=topic.slug, lesson_slug=lesson.slug) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-primary" type="submit" {{ 'disabled' if progress and progress.completed_at }}>
+            {{ '✓ Completed' if progress and progress.completed_at else 'Mark lesson complete' }}</button>
+        </form>
+      </div>
+    {% endif %}
+
+    {% if practice %}
+      <section class="section">
+        <h2>💪 Practice what you learned</h2>
+        <div class="practice-grid">
+          {% for p in practice %}
+            <a class="card practice-card" href="{{ url_for('main.problem', slug=p.slug) }}">
+              <div class="row spread"><strong>{{ p.title }}</strong>{{ difficulty(p.difficulty) }}</div>
+              <div class="small muted" style="margin-top:4px">{{ '✔ Solved' if p.id in solved else 'Solve it →' }}</div>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <nav class="lesson-nav" aria-label="Lesson navigation">
+      {% if prev_lesson %}
+        <a class="card nav-prev" href="{{ url_for('learn.lesson', topic_slug=prev_lesson.topic.slug, lesson_slug=prev_lesson.slug) }}">
+          <span class="muted small">← Previous</span><strong>{{ prev_lesson.title }}</strong></a>
+      {% else %}<span></span>{% endif %}
+      {% if next_lesson %}
+        <a class="card nav-next" href="{{ url_for('learn.lesson', topic_slug=next_lesson.topic.slug, lesson_slug=next_lesson.slug) }}">
+          <span class="muted small">Next →</span><strong>{{ next_lesson.title }}</strong></a>
+      {% endif %}
+    </nav>
+  </article>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+  window.LESSON = {
+    loggedIn: {{ current_user.is_authenticated|tojson }},
+    loginUrl: {{ url_for('auth.login', next=request.path)|tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/learn.js') }}"></script>
+{% endblock %}

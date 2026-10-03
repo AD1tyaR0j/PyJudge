@@ -55,6 +55,7 @@
     <div class="list">
       <a class="list-item" href="{{ url_for('admin.users') }}#create"><span>➕ Create a user account</span><span class="muted">→</span></a>
       <a class="list-item" href="{{ url_for('studio.new_exercise') }}"><span>✍️ Write a new exercise</span><span class="muted">→</span></a>
+      <a class="list-item" href="{{ url_for('instructor.lessons') }}"><span>📚 Manage course lessons ({{ stats.lessons }} live · {{ stats.lessons_completed }} completions)</span><span class="muted">→</span></a>
       <a class="list-item" href="{{ url_for('challenges.new') }}"><span>🏁 Start a challenge</span><span class="muted">→</span></a>
       <a class="list-item" href="{{ url_for('instructor.reports') }}"><span>📊 Performance reports</span><span class="muted">→</span></a>
       <a class="list-item" href="{{ url_for('instructor.submissions') }}"><span>📝 Grade submissions</span><span class="muted">→</span></a>

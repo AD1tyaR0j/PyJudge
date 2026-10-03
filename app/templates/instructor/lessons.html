@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status as status_badge %}
+{% block title %}Lessons{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('account.dashboard') }}">← Dashboard</a></p>
+<div class="page-head">
+  <div><h1>{{ 'Course lessons' if current_user.is_admin else 'My lessons' }}</h1>
+    <p class="muted">Write tutorials with runnable examples and quizzes. {{ 'Instructor lessons are reviewed by an admin before publishing.' if site.require_approval else '' }}</p></div>
+  <a class="btn btn-primary" href="{{ url_for('studio.new_lesson') }}">+ New lesson</a>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Topic</th><th>Lesson</th><th>Source</th><th>Status</th><th>Quiz</th><th>Completed by</th><th>Avg quiz</th><th></th></tr></thead>
+    <tbody>
+    {% for l in lessons %}
+      <tr>
+        <td>{{ l.topic.icon }} {{ l.topic.title }}</td>
+        <td class="title"><a href="{{ url_for('learn.lesson', topic_slug=l.topic.slug, lesson_slug=l.slug) }}">{{ l.title }}</a>
+          {% if l.status == 'rejected' and l.review_note %}<div class="small" style="color:var(--red)">“{{ l.review_note }}”</div>{% endif %}</td>
+        <td class="muted">{{ 'Course' if l.source == 'builtin' else (l.author.display_name if l.author else '—') }}</td>
+        <td>{{ status_badge(l.status) }}</td>
+        <td>{{ l.questions|length }} Q</td>
+        <td>{{ completions.get(l.id, 0) }}</td>
+        <td>{{ (avg_quiz[l.id] ~ '%') if avg_quiz.get(l.id) is not none else '—' }}</td>
+        <td>{% if l.editable_by(current_user) %}<a class="btn btn-sm" href="{{ url_for('studio.edit_lesson', lesson_id=l.id) }}">Edit</a>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="empty">You haven't written any lessons yet. <a href="{{ url_for('studio.new_lesson') }}">Write your first one →</a></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

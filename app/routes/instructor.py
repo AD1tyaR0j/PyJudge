@@ -5,11 +5,30 @@ from flask_login import current_user
 from sqlalchemy import func
 
 from .. import db
-from ..models import Message, Problem, Submission, TestCase, User, utcnow
+from ..models import Lesson, LessonProgress, Message, Problem, Submission, TestCase, Topic, User, utcnow
 from ..stats import acceptance_stats
 from .decorators import author_required
 
 bp = Blueprint("instructor", __name__)
+
+
+@bp.route("/lessons")
+@author_required
+def lessons():
+    """Lessons the instructor wrote (admins see the whole course), with completion stats."""
+    query = Lesson.query.join(Topic).order_by(Topic.position, Lesson.position)
+    if not current_user.is_admin:
+        query = query.filter(Lesson.created_by == current_user.id)
+    rows = query.all()
+    ids = [lesson.id for lesson in rows] or [-1]
+    completions = dict(db.session.query(LessonProgress.lesson_id, func.count())
+                       .filter(LessonProgress.lesson_id.in_(ids), LessonProgress.completed_at.isnot(None))
+                       .group_by(LessonProgress.lesson_id).all())
+    avg_quiz = {lid: (round(100 * s / t) if t else None) for lid, s, t in
+                db.session.query(LessonProgress.lesson_id, func.sum(LessonProgress.quiz_score),
+                                 func.sum(LessonProgress.quiz_total))
+                .filter(LessonProgress.lesson_id.in_(ids)).group_by(LessonProgress.lesson_id).all()}
+    return render_template("instructor/lessons.html", lessons=rows, completions=completions, avg_quiz=avg_quiz)
 
 
 def my_problems_query():

@@ -45,7 +45,9 @@ def run_code(code, stdin_data="", time_limit=2, memory_limit=128,
             wait_limit = time_limit + DOCKER_STARTUP_GRACE
             popen_kwargs = {}
         else:
-            cmd = [sys.executable, "-I", "main.py"]
+            # -X utf8: isolated mode (-I) ignores PYTHONIOENCODING, and Windows would otherwise
+            # encode stdout as cp1252 and crash on any non-ASCII character
+            cmd = [sys.executable, "-I", "-X", "utf8", "main.py"]
             wait_limit = time_limit
             popen_kwargs = {"env": _clean_env()}
             if IS_POSIX:
@@ -95,7 +97,7 @@ def _docker_cmd(tmp, name, image, memory_limit):
         "--cap-drop=ALL", "--security-opt=no-new-privileges",
         "--user", "65534:65534",
         "-v", f"{tmp}:/code:ro", "-w", "/code",
-        image, "python3", "-I", "main.py",
+        image, "python3", "-I", "-X", "utf8", "main.py",
     ]
 
 

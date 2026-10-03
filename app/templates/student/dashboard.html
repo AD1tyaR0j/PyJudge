@@ -1,17 +1,53 @@
 {% extends "base.html" %}
 {% from "_macros.html" import difficulty, verdict, grade, chart_table, chart_scripts %}
 {% block title %}My dashboard{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">{% endblock %}
 {% block content %}
 <div class="page-head">
   <div><h1>Hi {{ current_user.display_name }} 👋</h1><p class="muted">Keep the streak going. Here's where you are.</p></div>
-  <a class="btn btn-primary" href="{{ url_for('main.problems') }}">Browse exercises →</a>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('main.problems') }}">Exercises</a>
+    <a class="btn btn-primary" href="{{ url_for('learn.index') }}">📚 Python course →</a>
+  </div>
 </div>
 
 <div class="grid grid-4">
-  <div class="card stat"><div class="num">{{ stats.solved }}</div><div class="label">Solved</div><div class="sub">of {{ stats.total }} exercises</div></div>
-  <div class="card stat"><div class="num">{{ stats.score }}</div><div class="label">Points</div><div class="sub">{{ ('rank #' ~ stats.rank) if stats.rank else 'not ranked yet' }}</div></div>
-  <div class="card stat"><div class="num">{{ stats.streak }}</div><div class="label">Day streak 🔥</div></div>
-  <div class="card stat"><div class="num">{{ stats.avg_grade if stats.avg_grade is not none else '—' }}</div><div class="label">Average grade</div></div>
+  <div class="card stat"><div class="num">{{ course.done }}</div><div class="label">Lessons done</div><div class="sub">of {{ course.total }} in the course</div></div>
+  <div class="card stat"><div class="num">{{ stats.solved }}</div><div class="label">Exercises solved</div><div class="sub">of {{ stats.total }} · {{ stats.score }} pts</div></div>
+  <div class="card stat"><div class="num">{{ stats.streak }}</div><div class="label">Day streak 🔥</div><div class="sub">{{ ('rank #' ~ stats.rank) if stats.rank else 'not ranked yet' }}</div></div>
+  <div class="card stat"><div class="num">{{ stats.avg_grade if stats.avg_grade is not none else '—' }}</div><div class="label">Average grade</div>
+    <div class="sub">quiz average {{ (course.quiz_avg ~ '%') if course.quiz_avg is not none else '—' }}</div></div>
+</div>
+
+<div class="section card continue-card" style="display:block">
+  <div class="row spread">
+    <div><div class="muted small">📚 Your Python course · {{ course.percent }}% complete</div>
+      {% if course.next %}<strong style="font-size:18px">Up next: {{ course.next.topic.icon }} {{ course.next.title }}</strong>
+      {% else %}<strong style="font-size:18px">🎓 You've completed every lesson!</strong>{% endif %}</div>
+    {% if course.next %}
+      <a class="btn btn-primary" href="{{ url_for('learn.lesson', topic_slug=course.next.topic.slug, lesson_slug=course.next.slug) }}">
+        {{ 'Continue' if course.done else 'Start' }} ({{ course.next.minutes }} min) →</a>
+    {% endif %}
+  </div>
+  <div class="bar" style="margin-top:12px; height:10px"><span style="width:{{ course.percent }}%; background: var(--grad-primary)"></span></div>
+  <div class="row small muted" style="margin-top:10px; gap:6px 14px">
+    {% for t in course.topics %}
+      <a href="{{ url_for('learn.topic', topic_slug=t.topic.slug) }}" title="{{ t.topic.title }}"
+         style="color: {{ 'var(--green)' if t.state == 'done' else 'var(--muted)' }}">{{ t.topic.icon }} {{ t.done }}/{{ t.total }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="section">
+  <h2>🏅 Achievements <span class="muted small">({{ badges|selectattr('earned')|list|length }}/{{ badges|length }})</span></h2>
+  <div class="badges">
+    {% for b in badges %}
+      <div class="badge-tile {{ 'earned' if b.earned else 'locked' }}" title="{{ b.desc }}">
+        <span class="b-icon">{{ b.icon }}</span><strong>{{ b.name }}</strong><span>{{ b.desc }}</span>
+        <span style="display:block; margin-top:4px; color: {{ 'var(--accent-2)' if b.earned else 'var(--muted)' }}">{{ '✓ Earned' if b.earned else b.progress }}</span>
+      </div>
+    {% endfor %}
+  </div>
 </div>
 
 <div class="section grid grid-2">

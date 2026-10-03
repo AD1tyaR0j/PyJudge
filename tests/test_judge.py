@@ -79,3 +79,10 @@ def test_judging_accepts_large_correct_output():
     expected = "\n".join(map(str, range(n)))  # ~290 KB
     r = judge_code(f"print('\\n'.join(map(str, range({n}))))", [("", expected, False)])
     assert r["verdict"] == "AC", r["error"]
+
+
+def test_unicode_input_and_output():
+    # Windows defaults to cp1252 for pipes; the sandbox must use UTF-8 both ways
+    r = run_code("s = input()\nprint(s[::-1], '✔ ♪ café')", "héllo 世界")
+    assert r.status == "OK", r.stderr
+    assert r.stdout.strip() == "界世 olléh ✔ ♪ café"

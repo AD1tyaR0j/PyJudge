@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import difficulty %}
+{% set t = info.topic %}
+{% block title %}{{ t.title }} · Learn{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('learn.index') }}">← Course roadmap</a></p>
+<div class="topic-head">
+  <span class="topic-icon">{{ t.icon }}</span>
+  <div>
+    <div class="muted small">Topic {{ number }} of {{ course.topics|length }} · {{ t.level }}</div>
+    <h1>{{ t.title }}</h1>
+    <div class="description">{{ t.description|markdown }}</div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:22px">
+  <div class="row spread small"><strong>Your progress</strong><span class="muted">{{ info.done }} / {{ info.total }} lessons · ~{{ info.minutes }} min</span></div>
+  <div class="bar" style="margin-top:8px; height:10px"><span style="width:{{ info.percent }}%; background:var(--{{ 'green' if info.state == 'done' else 'accent' }})"></span></div>
+</div>
+
+<div class="grid grid-2">
+  <div>
+    <h2>Lessons</h2>
+    <ol class="lesson-list">
+      {% for lesson in info.lessons %}
+        {% set p = course.progress.get(lesson.id) %}
+        <li style="--i: {{ loop.index0 }}">
+          <a class="card lesson-row {{ 'is-done' if p and p.completed_at }}" href="{{ url_for('learn.lesson', topic_slug=t.slug, lesson_slug=lesson.slug) }}">
+            <span class="lesson-num">{% if p and p.completed_at %}✓{% else %}{{ loop.index }}{% endif %}</span>
+            <div class="grow">
+              <strong>{{ lesson.title }}</strong>
+              <div class="muted small">{{ lesson.minutes }} min{% if lesson.questions %} · {{ lesson.questions|length }}-question quiz{% endif %}
+                {% if p and p.quiz_total %} · best {{ p.quiz_score }}/{{ p.quiz_total }}{% endif %}</div>
+            </div>
+            <span class="muted">→</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+  <div>
+    <h2>Practice this topic</h2>
+    <div class="card" style="padding:8px 16px">
+      {% for p in practice %}
+        <a class="list-item" href="{{ url_for('main.problem', slug=p.slug) }}" style="color:inherit">
+          <span>{% if p.id in solved %}<span class="solved">✔</span> {% endif %}{{ p.title }}</span>{{ difficulty(p.difficulty) }}</a>
+      {% else %}
+        <div class="empty">No matching exercises yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

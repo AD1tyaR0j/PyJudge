@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, status as status_badge %}
+{% block title %}{{ 'New lesson' if is_new else 'Edit ' ~ lesson.title }}{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ url_for('instructor.lessons') }}">← Lessons</a>
+  {% if not is_new %} · <a href="{{ url_for('learn.lesson', topic_slug=lesson.topic.slug, lesson_slug=lesson.slug) }}">Preview lesson</a>{% endif %}</p>
+<div class="page-head">
+  <h1>{{ 'New lesson' if is_new else 'Edit lesson' }}</h1>
+  {% if not is_new %}{{ status_badge(lesson.status) }}{% endif %}
+</div>
+
+{% if not is_new %}
+  {% if lesson.source == 'builtin' %}
+    <div class="note">📘 This is a built-in course lesson. Its source lives in <code>app/curriculum/</code>, and running
+      <code>flask seed</code> again will overwrite edits made here.</div>
+  {% elif lesson.status == 'pending' %}
+    <div class="note">⏳ Waiting for an admin to approve it. Students can't see it yet.</div>
+  {% elif lesson.status == 'rejected' %}
+    <div class="note bad">✖ Returned for changes.{% if lesson.review_note %}<br><strong>Note:</strong> {{ lesson.review_note }}{% endif %}
+      <br><span class="small muted">Save your changes to send it back for review.</span></div>
+  {% endif %}
+{% elif current_user.is_instructor and site.require_approval %}
+  <div class="note">New lessons are reviewed by an admin before students can see them.</div>
+{% endif %}
+
+<form method="post" class="card">
+  {{ csrf() }}
+  <div class="grid grid-4">
+    <div class="field" style="grid-column: span 2"><label for="title">Title</label>
+      <input id="title" name="title" type="text" value="{{ lesson.title or '' }}" required maxlength="150"></div>
+    <div class="field"><label for="topic_id">Topic</label>
+      <select id="topic_id" name="topic_id" required>
+        <option value="">Choose…</option>
+        {% for t in topics %}<option value="{{ t.id }}" {{ 'selected' if t.id == lesson.topic_id }}>{{ t.icon }} {{ t.title }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label for="minutes">Reading time (min)</label>
+      <input id="minutes" name="minutes" type="number" min="1" max="120" value="{{ lesson.minutes }}"></div>
+  </div>
+  <div class="field"><label for="practice_tags">Practice tags <span class="muted small">(exercise tags to suggest, comma-separated)</span></label>
+    <input id="practice_tags" name="practice_tags" type="text" value="{{ lesson.practice_tags or '' }}" placeholder="strings, loops"></div>
+  <div class="field">
+    <label for="content">Lesson content <span class="muted small">(Markdown)</span></label>
+    <textarea id="content" name="content" rows="22" class="mono">{{ lesson.content or '' }}</textarea>
+    <details class="small muted" style="margin-top:6px"><summary style="cursor:pointer">Formatting help</summary>
+      <p>Write normal Markdown. A <code>```pyrun</code> block becomes a runnable playground. Inside it, put a line
+        <code>### stdin</code> followed by any input the example should read. Use <code>```pyrun-error</code> for an example that's
+        meant to raise an error, and <code>```python</code> for code that is shown but not runnable.</p>
+    </details>
+  </div>
+  <button class="btn btn-primary" type="submit">{{ 'Create lesson' if is_new else 'Save changes' }}</button>
+</form>
+
+{% if not is_new %}
+  <h2 id="quiz" class="section">Quiz questions ({{ lesson.questions|length }})</h2>
+  <p class="muted small">Students need half of these right to complete the lesson.</p>
+  {% for q in lesson.questions %}
+    <div class="card" style="margin-bottom:12px">
+      <div class="row spread small" style="margin-bottom:6px"><strong>Question {{ loop.index }}</strong>
+        <form method="post" action="{{ url_for('studio.delete_question', question_id=q.id) }}" onsubmit="return confirm('Delete this question?')">
+          {{ csrf() }}<button class="btn btn-sm btn-danger" type="submit">Delete</button></form></div>
+      <div>{{ q.prompt|markdown }}</div>
+      <ol style="margin:6px 0">{% for o in q.options %}
+        <li {% if loop.index0 == q.answer %}style="color:var(--green); font-weight:700"{% endif %}>{{ o }}{% if loop.index0 == q.answer %} ✓{% endif %}</li>
+      {% endfor %}</ol>
+      {% if q.explanation %}<div class="small muted">Explanation: {{ q.explanation }}</div>{% endif %}
+    </div>
+  {% endfor %}
+
+  <form method="post" action="{{ url_for('studio.add_question', lesson_id=lesson.id) }}" class="card">
+    {{ csrf() }}
+    <h3>Add a question</h3>
+    <div class="field"><label for="prompt">Question <span class="muted small">(Markdown, code allowed)</span></label>
+      <textarea id="prompt" name="prompt" rows="3" class="mono" required></textarea></div>
+    <label>Options <span class="muted small">(select the correct one; leave extras empty)</span></label>
+    {% for i in range(4) %}
+      <div class="row" style="margin-bottom:8px; flex-wrap:nowrap">
+        <input type="radio" name="answer" value="{{ i }}" style="width:auto" aria-label="Option {{ i + 1 }} is correct" {{ 'required' if i == 0 }}>
+        <input type="text" name="option" placeholder="Option {{ i + 1 }}">
+      </div>
+    {% endfor %}
+    <div class="field"><label for="explanation">Explanation <span class="muted small">(shown after answering)</span></label>
+      <input id="explanation" name="explanation" type="text"></div>
+    <button class="btn btn-primary" type="submit">Add question</button>
+  </form>
+
+  {% if lesson.source == 'custom' %}
+    <form method="post" action="{{ url_for('studio.delete_lesson', lesson_id=lesson.id) }}" class="section"
+          onsubmit="return confirm('Delete this lesson and all student progress on it?')">
+      {{ csrf() }}<button class="btn btn-danger" type="submit">Delete lesson</button>
+    </form>
+  {% endif %}
+{% endif %}
+{% endblock %}

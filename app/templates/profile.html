@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import difficulty, submissions_table, role %}
 {% block title %}{{ user.username }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">{% endblock %}
 {% block content %}
 <div class="row spread">
   <div>
@@ -42,6 +43,25 @@
     {% endfor %}
   </div>
 </div>
+
+{% if user.is_student %}
+<div class="card" style="margin-bottom:22px">
+  <div class="row spread small"><strong>📚 Python course</strong>
+    <span class="muted">{{ course.done }} / {{ course.total }} lessons · quiz average {{ (course.quiz_avg ~ '%') if course.quiz_avg is not none else '—' }}</span></div>
+  <div class="bar" style="margin-top:8px"><span style="width:{{ course.percent }}%; background: var(--grad-primary)"></span></div>
+</div>
+{% endif %}
+
+{% if badges %}
+<h2>🏅 Achievements <span class="muted small">({{ badges|selectattr('earned')|list|length }}/{{ badges|length }})</span></h2>
+<div class="badges" style="margin-bottom:24px">
+  {% for b in badges if b.earned %}
+    <div class="badge-tile earned" title="{{ b.desc }}"><span class="b-icon">{{ b.icon }}</span><strong>{{ b.name }}</strong><span>{{ b.desc }}</span></div>
+  {% else %}
+    <p class="muted">No achievements yet.</p>
+  {% endfor %}
+</div>
+{% endif %}
 
 {% if authored %}
 <h2>Exercises by {{ user.display_name }}</h2>

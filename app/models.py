@@ -246,6 +246,119 @@ class Challenge(db.Model):
         return user.is_authenticated and (user.is_admin or (user.is_instructor and self.created_by == user.id))
 
 
+class Topic(db.Model):
+    """A chapter of the Python course, e.g. "Strings" or "Functions"."""
+    __tablename__ = "topics"
+
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    title = db.Column(db.String(120), nullable=False)
+    icon = db.Column(db.String(16), default="📘")
+    level = db.Column(db.String(20), default="Beginner")
+    summary = db.Column(db.String(300), default="")
+    description = db.Column(db.Text, default="")
+    position = db.Column(db.Integer, nullable=False, default=0)
+
+    lessons = db.relationship("Lesson", back_populates="topic", cascade="all, delete-orphan",
+                              order_by="Lesson.position")
+
+    @property
+    def approved_lessons(self):
+        return [lesson for lesson in self.lessons if lesson.is_approved]
+
+
+class Lesson(db.Model):
+    """A tutorial page. Built-in lessons come from app/curriculum; instructors can add more (admin-approved)."""
+    __tablename__ = "lessons"
+    __table_args__ = (db.UniqueConstraint("topic_id", "slug"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topics.id"), nullable=False, index=True)
+    slug = db.Column(db.String(120), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    content = db.Column(db.Text, nullable=False, default="")
+    minutes = db.Column(db.Integer, nullable=False, default=5)
+    practice_tags = db.Column(db.String(255), default="")
+    position = db.Column(db.Integer, nullable=False, default=0)
+    source = db.Column(db.String(10), nullable=False, default="custom")  # "builtin" or "custom"
+    status = db.Column(db.String(10), nullable=False, default="pending", index=True)
+    review_note = db.Column(db.Text)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    reviewed_at = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    topic = db.relationship("Topic", back_populates="lessons")
+    author = db.relationship("User", foreign_keys=[created_by])
+    reviewer = db.relationship("User", foreign_keys=[reviewed_by])
+    questions = db.relationship("QuizQuestion", back_populates="lesson", cascade="all, delete-orphan",
+                                order_by="QuizQuestion.position")
+    progress = db.relationship("LessonProgress", back_populates="lesson", cascade="all, delete-orphan")
+
+    @property
+    def is_approved(self):
+        return self.status == "approved"
+
+    @property
+    def practice_tag_list(self):
+        return [t.strip() for t in (self.practice_tags or "").split(",") if t.strip()]
+
+    def editable_by(self, user):
+        if not user.is_authenticated:
+            return False
+        if user.is_admin:
+            return True
+        return user.is_instructor and self.source == "custom" and self.created_by == user.id
+
+    def visible_to(self, user):
+        return self.is_approved or self.editable_by(user)
+
+
+class QuizQuestion(db.Model):
+    __tablename__ = "quiz_questions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    lesson_id = db.Column(db.Integer, db.ForeignKey("lessons.id"), nullable=False, index=True)
+    prompt = db.Column(db.Text, nullable=False)
+    options_json = db.Column(db.Text, nullable=False, default="[]")
+    answer = db.Column(db.Integer, nullable=False, default=0)  # index into options
+    explanation = db.Column(db.Text, default="")
+    position = db.Column(db.Integer, nullable=False, default=0)
+
+    lesson = db.relationship("Lesson", back_populates="questions")
+
+    @property
+    def options(self):
+        import json
+        return json.loads(self.options_json or "[]")
+
+    @options.setter
+    def options(self, values):
+        import json
+        self.options_json = json.dumps(list(values))
+
+
+class LessonProgress(db.Model):
+    __tablename__ = "lesson_progress"
+    __table_args__ = (db.UniqueConstraint("user_id", "lesson_id"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    lesson_id = db.Column(db.Integer, db.ForeignKey("lessons.id"), nullable=False, index=True)
+    completed_at = db.Column(db.DateTime)
+    quiz_score = db.Column(db.Integer)   # best score so far
+    quiz_total = db.Column(db.Integer)
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    lesson = db.relationship("Lesson", back_populates="progress")
+
+    @property
+    def perfect(self):
+        return bool(self.quiz_total) and self.quiz_score == self.quiz_total
+
+
 class Setting(db.Model):
     __tablename__ = "settings"
 

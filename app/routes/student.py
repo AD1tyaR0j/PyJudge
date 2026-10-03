@@ -2,7 +2,8 @@ from flask import Blueprint, render_template
 from flask_login import current_user, login_required
 
 from ..models import DIFFICULTIES, POINTS, Challenge, Message, Problem, Submission
-from ..stats import attempted_problem_ids, leaderboard_rows, solve_timeline, solved_problem_ids, streak
+from ..stats import (achievements, attempted_problem_ids, course_overview, leaderboard_rows, solve_timeline,
+                     solved_problem_ids, streak)
 from .challenges import summarize
 
 bp = Blueprint("student", __name__)
@@ -48,4 +49,5 @@ def dashboard():
     }
     return render_template("student/dashboard.html", stats=stats, by_difficulty=by_difficulty,
                            timeline=solve_timeline(uid, 30), up_next=up_next, in_progress_ids={p.id for p in in_progress},
-                           active=active, completed=completed, feedback=feedback, messages=messages)
+                           active=active, completed=completed, feedback=feedback, messages=messages,
+                           course=course_overview(current_user), badges=achievements(current_user))

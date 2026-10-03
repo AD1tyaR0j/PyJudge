@@ -46,6 +46,7 @@ def create_app(overrides=None):
     from .routes.auth import bp as auth_bp
     from .routes.challenges import bp as challenges_bp
     from .routes.instructor import bp as instructor_bp
+    from .routes.learn import bp as learn_bp
     from .routes.main import bp as main_bp
     from .routes.messages import bp as messages_bp
     from .routes.student import bp as student_bp
@@ -61,6 +62,7 @@ def create_app(overrides=None):
     app.register_blueprint(studio_bp, url_prefix="/studio")
     app.register_blueprint(messages_bp, url_prefix="/messages")
     app.register_blueprint(challenges_bp, url_prefix="/challenges")
+    app.register_blueprint(learn_bp, url_prefix="/learn")
 
     _register_csrf(app)
     _register_template_helpers(app)

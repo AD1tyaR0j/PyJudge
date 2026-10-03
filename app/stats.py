@@ -86,8 +86,11 @@ def solve_timeline(user_id, days=30):
 
 
 def streak(user_id):
-    """Consecutive days (ending today or yesterday) with at least one submission."""
+    """Consecutive days (ending today or yesterday) with a submission or a completed lesson."""
+    from .models import LessonProgress
     days = {ts.date() for (ts,) in db.session.query(Submission.submitted_at).filter_by(user_id=user_id)}
+    days |= {ts.date() for (ts,) in db.session.query(LessonProgress.completed_at)
+             .filter(LessonProgress.user_id == user_id, LessonProgress.completed_at.isnot(None))}
     today = utcnow().date()
     cursor = today if today in days else today - timedelta(days=1)
     count = 0
@@ -119,3 +122,76 @@ def leaderboard_rows(limit=None, problem_ids=None, since=None, until=None):
     rows = [{"user": users[uid], "solved": solved[uid], "score": score[uid]} for uid in score if uid in users]
     rows.sort(key=lambda r: (-r["score"], -r["solved"], r["user"].username.lower()))
     return rows[:limit] if limit else rows
+
+
+# ---------------------------------------------------------------- learning
+
+def progress_map(user_id):
+    """{lesson_id: LessonProgress} for one user."""
+    from .models import LessonProgress
+    return {p.lesson_id: p for p in LessonProgress.query.filter_by(user_id=user_id)}
+
+
+def course_overview(user):
+    """Topics with approved lessons, per-topic progress, and where to continue."""
+    from .models import Topic
+    progress = progress_map(user.id) if user.is_authenticated else {}
+    topics, all_lessons = [], []
+    for t in Topic.query.order_by(Topic.position).all():
+        lessons = t.approved_lessons
+        if not lessons:
+            continue
+        done = sum(1 for lesson in lessons if lesson.id in progress and progress[lesson.id].completed_at)
+        started = any(lesson.id in progress for lesson in lessons)
+        topics.append({"topic": t, "lessons": lessons, "done": done, "total": len(lessons),
+                       "percent": round(100 * done / len(lessons)),
+                       "state": "done" if done == len(lessons) else "active" if started or done else "new",
+                       "minutes": sum(lesson.minutes for lesson in lessons)})
+        all_lessons.extend(lessons)
+    total = len(all_lessons)
+    done = sum(1 for lesson in all_lessons if lesson.id in progress and progress[lesson.id].completed_at)
+    next_lesson = next((lesson for lesson in all_lessons
+                        if not (lesson.id in progress and progress[lesson.id].completed_at)), None)
+    scored = [p for p in progress.values() if p.quiz_total]
+    quiz_avg = round(100 * sum(p.quiz_score for p in scored) / sum(p.quiz_total for p in scored)) if scored else None
+    return {"topics": topics, "total": total, "done": done, "percent": round(100 * done / total) if total else 0,
+            "next": next_lesson, "progress": progress, "quiz_avg": quiz_avg,
+            "perfect_quizzes": sum(1 for p in scored if p.perfect)}
+
+
+def achievements(user):
+    """Badges computed from activity (nothing extra is stored)."""
+    from .models import Challenge
+    course = course_overview(user)
+    solved_ids = solved_problem_ids(user.id)
+    hard_solved = Problem.query.filter(Problem.id.in_(solved_ids or [-1]), Problem.difficulty == "Hard").count()
+    topics_done = sum(1 for t in course["topics"] if t["state"] == "done")
+    days = streak(user.id)
+
+    def challenge_done():
+        from .routes.challenges import challenge_progress
+        for c in Challenge.query.all():
+            ids = c.approved_problems
+            if ids and len(challenge_progress(c, user.id)) == len(ids):
+                return True
+        return False
+
+    defs = [
+        ("👣", "First Steps", "Complete your first lesson", course["done"] >= 1, f"{min(course['done'], 1)}/1"),
+        ("📚", "Bookworm", "Complete 10 lessons", course["done"] >= 10, f"{min(course['done'], 10)}/10"),
+        ("🧩", "Topic Master", "Finish every lesson in a topic", topics_done >= 1, f"{topics_done} topics"),
+        ("🎓", "Graduate", "Complete the whole Python course",
+         course["total"] > 0 and course["done"] == course["total"], f"{course['done']}/{course['total']}"),
+        ("🧠", "Quiz Whiz", "Get 5 perfect quiz scores", course["perfect_quizzes"] >= 5, f"{min(course['perfect_quizzes'], 5)}/5"),
+        ("✅", "Problem Solver", "Solve 10 exercises", len(solved_ids) >= 10, f"{min(len(solved_ids), 10)}/10"),
+        ("🏔️", "Hard Hitter", "Solve a Hard exercise", hard_solved >= 1, f"{min(hard_solved, 1)}/1"),
+        ("🔥", "On Fire", "Keep a 7-day learning streak", days >= 7, f"{min(days, 7)}/7 days"),
+        ("🏁", "Challenger", "Complete a challenge", None, ""),
+    ]
+    out = []
+    for icon, name, desc, earned, progress in defs:
+        if earned is None:
+            earned = challenge_done()
+            progress = "done" if earned else "0/1"
+        out.append({"icon": icon, "name": name, "desc": desc, "earned": bool(earned), "progress": progress})
+    return out

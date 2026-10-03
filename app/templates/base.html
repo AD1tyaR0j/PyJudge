@@ -29,6 +29,7 @@
         <a href="{{ url_for('account.dashboard') }}" class="{{ 'active' if dash_active }}">
           {{ 'Admin' if current_user.is_admin else 'Instructor' if current_user.is_instructor else 'Dashboard' }}</a>
       {% endif %}
+      <a href="{{ url_for('learn.index') }}" class="{{ 'active' if request.blueprint == 'learn' }}">Learn</a>
       <a href="{{ url_for('main.problems') }}" class="{{ 'active' if ep in ('main.problems', 'main.problem') }}">Exercises</a>
       <a href="{{ url_for('challenges.index') }}" class="{{ 'active' if request.blueprint == 'challenges' }}">Challenges</a>
       {% if site.leaderboard_enabled %}

@@ -6,6 +6,8 @@
   <div><h1>Welcome back, {{ current_user.display_name }} 👋</h1><p class="muted">Your exercises, students, and messages at a glance.</p></div>
   <div class="actions">
     <a class="btn" href="{{ url_for('challenges.new') }}">🏁 New challenge</a>
+    <a class="btn" href="{{ url_for('instructor.lessons') }}">📚 My lessons</a>
+    <a class="btn" href="{{ url_for('studio.new_lesson') }}">+ New lesson</a>
     <a class="btn btn-primary" href="{{ url_for('studio.new_exercise') }}">+ New exercise</a>
   </div>
 </div>

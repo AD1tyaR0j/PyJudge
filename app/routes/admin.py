@@ -3,7 +3,8 @@ from flask_login import current_user
 from sqlalchemy import func, or_
 
 from .. import db
-from ..models import ROLES, STATUSES, Challenge, Message, Problem, Submission, TestCase, User, utcnow
+from ..models import (ROLES, STATUSES, Challenge, Lesson, LessonProgress, Message, Problem, Submission,
+                      TestCase, User, utcnow)
 from ..settings import SCHEMA, get_settings, update_settings
 from ..stats import activity_overview
 from .auth import validate_account
@@ -24,9 +25,11 @@ def dashboard():
         "students": roles.get("student", 0),
         "instructors": roles.get("instructor", 0),
         "approved": Problem.query.filter_by(status="approved").count(),
-        "pending": Problem.query.filter_by(status="pending").count(),
+        "pending": Problem.query.filter_by(status="pending").count() + Lesson.query.filter_by(status="pending").count(),
         "submissions": Submission.query.count(),
         "acceptance": round(100 * accepted / judged) if judged else 0,
+        "lessons": Lesson.query.filter_by(status="approved").count(),
+        "lessons_completed": LessonProgress.query.filter(LessonProgress.completed_at.isnot(None)).count(),
     }
     pending = Problem.query.filter_by(status="pending").order_by(Problem.updated_at).limit(5).all()
     recent = Submission.query.order_by(Submission.id.desc()).limit(10).all()
@@ -111,6 +114,9 @@ def delete_user(user_id):
     Problem.query.filter_by(reviewed_by=user.id).update({"reviewed_by": None})
     Submission.query.filter_by(graded_by=user.id).update({"graded_by": None})
     Challenge.query.filter_by(created_by=user.id).update({"created_by": None})
+    LessonProgress.query.filter_by(user_id=user.id).delete()
+    Lesson.query.filter_by(created_by=user.id).update({"created_by": None})
+    Lesson.query.filter_by(reviewed_by=user.id).update({"reviewed_by": None})
     db.session.delete(user)
     db.session.commit()
     flash(f"Deleted “{user.username}” and their submissions.", "info")
@@ -136,7 +142,35 @@ def content():
 @admin_required
 def approvals():
     pending = Problem.query.filter_by(status="pending").order_by(Problem.updated_at).all()
-    return render_template("admin/approvals.html", pending=pending)
+    pending_lessons = Lesson.query.filter_by(status="pending").order_by(Lesson.updated_at).all()
+    return render_template("admin/approvals.html", pending=pending, pending_lessons=pending_lessons)
+
+
+@bp.post("/lessons/<int:lesson_id>/review")
+@admin_required
+def review_lesson(lesson_id):
+    lesson = db.get_or_404(Lesson, lesson_id)
+    decision = request.form.get("decision")
+    note = request.form.get("note", "").strip()
+    if decision not in ("approve", "reject"):
+        abort(400)
+    if decision == "reject" and not note:
+        flash("Add a note so the instructor knows what to change.", "error")
+        return redirect(request.referrer or url_for("admin.approvals"))
+
+    lesson.status = "approved" if decision == "approve" else "rejected"
+    lesson.review_note = note or None
+    lesson.reviewed_by = current_user.id
+    lesson.reviewed_at = utcnow()
+    if lesson.created_by and lesson.created_by != current_user.id:
+        verb = "approved and published" if decision == "approve" else "returned for changes"
+        body = f"Your lesson “{lesson.title}” was {verb}."
+        if note:
+            body += f"\n\nReviewer note: {note}"
+        db.session.add(Message(sender_id=current_user.id, recipient_id=lesson.created_by, body=body))
+    db.session.commit()
+    flash(f"Lesson “{lesson.title}” {'approved' if decision == 'approve' else 'rejected'}.", "success")
+    return redirect(request.referrer or url_for("admin.approvals"))
 
 
 @bp.post("/exercises/<int:problem_id>/review")

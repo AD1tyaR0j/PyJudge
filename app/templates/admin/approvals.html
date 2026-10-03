@@ -3,8 +3,9 @@
 {% block title %}Content approval{% endblock %}
 {% block content %}
 <p class="small"><a href="{{ url_for('admin.dashboard') }}">← Admin dashboard</a></p>
-<div class="page-head"><div><h1>Content approval</h1><p class="muted">Review exercises submitted by instructors. The author gets a message with your decision.</p></div></div>
+<div class="page-head"><div><h1>Content approval</h1><p class="muted">Review exercises and lessons submitted by instructors. The author gets a message with your decision.</p></div></div>
 
+<h2>Exercises ({{ pending|length }})</h2>
 {% for p in pending %}
   <div class="card" style="margin-bottom:16px">
     <div class="card-head">
@@ -36,5 +37,30 @@
   </div>
 {% else %}
   <div class="card empty">🎉 All caught up. No exercises are waiting for review.</div>
+{% endfor %}
+
+<h2 class="section">Lessons ({{ pending_lessons|length }})</h2>
+{% for l in pending_lessons %}
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div>
+        <h3>{{ l.topic.icon }} {{ l.title }}</h3>
+        <div class="muted small">{{ l.topic.title }} · by {{ l.author.display_name if l.author else 'deleted user' }} · submitted {{ l.updated_at|dt }} UTC
+          · {{ l.minutes }} min · {{ l.questions|length }} quiz question{{ 's' if l.questions|length != 1 }}</div>
+      </div>
+      <a class="btn btn-sm" href="{{ url_for('learn.lesson', topic_slug=l.topic.slug, lesson_slug=l.slug) }}" target="_blank" rel="noopener">Preview lesson ↗</a>
+    </div>
+    <form method="post" action="{{ url_for('admin.review_lesson', lesson_id=l.id) }}">
+      {{ csrf() }}
+      <div class="field"><label for="lnote-{{ l.id }}">Note to the instructor <span class="muted small">(required when rejecting)</span></label>
+        <textarea id="lnote-{{ l.id }}" name="note" rows="2" placeholder="e.g. Add a runnable example for slicing."></textarea></div>
+      <div class="actions">
+        <button class="btn btn-success" name="decision" value="approve" type="submit">✔ Approve &amp; publish</button>
+        <button class="btn btn-danger" name="decision" value="reject" type="submit">✖ Reject</button>
+      </div>
+    </form>
+  </div>
+{% else %}
+  <div class="card empty">No lessons are waiting for review.</div>
 {% endfor %}
 {% endblock %}
