@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<taglib xmlns="https://jakarta.ee/xml/ns/jakartaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-jsptaglibrary_3_0.xsd"
+        version="3.0">
+  <description>PyJudge view helpers</description>
+  <tlib-version>1.0</tlib-version>
+  <short-name>h</short-name>
+  <uri>https://pyjudge/functions</uri>
+
+  <function>
+    <description>HTML-escape a value</description>
+    <name>e</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String e(java.lang.Object)</function-signature>
+  </function>
+  <function>
+    <name>dt</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String dt(java.time.LocalDateTime)</function-signature>
+  </function>
+  <function>
+    <name>date</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String date(java.time.LocalDateTime)</function-signature>
+  </function>
+  <function>
+    <name>inputTime</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String inputTime(java.time.LocalDateTime)</function-signature>
+  </function>
+  <function>
+    <name>md</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String md(java.lang.String)</function-signature>
+  </function>
+  <function>
+    <name>mdInline</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String mdInline(java.lang.String)</function-signature>
+  </function>
+  <function>
+    <name>lesson</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String lesson(java.lang.String)</function-signature>
+  </function>
+  <function>
+    <name>json</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String json(java.lang.Object)</function-signature>
+  </function>
+  <function>
+    <name>pct</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>int pct(java.lang.Number, java.lang.Number)</function-signature>
+  </function>
+  <function>
+    <name>has</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>boolean has(java.util.Collection, java.lang.Object)</function-signature>
+  </function>
+  <function>
+    <name>plural</name>
+    <function-class>com.pyjudge.web.Html</function-class>
+    <function-signature>java.lang.String plural(java.lang.Number, java.lang.String)</function-signature>
+  </function>
+</taglib>

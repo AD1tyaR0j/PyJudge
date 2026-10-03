@@ -5,3 +5,6 @@ venv/
 instance/
 .env
 .pytest_cache/
+target/
+data/
+*.class
